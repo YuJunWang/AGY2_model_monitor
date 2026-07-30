@@ -1,8 +1,8 @@
 # AGY Fuel Gauge 🚀
 
-AGY Fuel Gauge is a background telemetry widget built to solve a simple problem: keeping track of your AI quotas without breaking your flow state. 
+AGY Fuel Gauge is a background telemetry widget that takes a "white-hat" approach to quota tracking. Most third-party trackers use fragile browser scrapers that break whenever a website updates, or force you to hand over sensitive session cookies. 
 
-It hooks directly into Antigravity's internal gRPC-Web API to give you an accurate, real-time look at your token usage for both Gemini and External models. We avoided building a fragile browser scraper, and you don't have to manually hunt for auth tokens. Just install it, and it quietly does its job in the background.
+Since Antigravity IDE already runs a local background daemon (`language_server.exe`) that handles your tokens, we decided to just eavesdrop on it. This widget hooks directly into that internal gRPC-Web API to give you an accurate, real-time look at your usage for both Gemini and External models. No broken scrapers, no manual token hunting—just install it, and it quietly fetches the data directly from the source.
 
 <p align="center">
   <img src="./assets/preview_5h.png" alt="5-Hour Quota View" width="45%" />
@@ -66,7 +66,9 @@ Once that's done, just restart your Antigravity IDE. You should see a little blu
 
 寫程式時若要隨時關注 AI 額度，頻繁切換視窗往往會打斷心流，這正是 AGY Fuel Gauge 誕生的原因。
 
-它是一個直接掛載在 Antigravity 底層 (透過 gRPC-Web) 的背景監控工具。我們捨棄了容易失效的網頁爬蟲，也不需要手動撈取 Token 憑證。安裝後，它就能在背景穩定運行，即時回報 Gemini 與外部模型的剩餘用量。
+市面上的 AI 額度監控工具大多採用「網頁爬蟲」，這不僅容易因為官方網頁改版而失效，還可能要求你交出敏感的帳號憑證。AGY Fuel Gauge 選擇了另一條路：**本地端白帽攔截**。
+
+既然 Antigravity IDE 已經在你的電腦裡跑了一支負責通訊的背景精靈 (`language_server.exe`)，我們何必捨近求遠？這支小工具會直接掛載在這個本機精靈的內部通道 (gRPC-Web) 上進行「旁聽」。我們徹底捨棄了脆弱的網頁爬蟲，你也不需要手動撈取 Token 憑證。安裝後，它就能在背景穩定運行，直接從最底層截取 Gemini 與外部模型的即時用量。
 
 ## ✨ 它是怎麼運作的？
 
