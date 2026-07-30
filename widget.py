@@ -45,21 +45,22 @@ class ArcGauge(tk.Canvas):
         
         # calculate remaining time text
         time_str = reset_time
-        if reset_time and "/" in reset_time:
+        if reset_time and "Z" in reset_time:
             try:
-                # "07/30 08:38"
-                current_year = datetime.now().year
-                dt = datetime.strptime(f"{current_year}/{reset_time}", "%Y/%m/%d %H:%M")
-                if dt < datetime.now():
-                    dt = dt + timedelta(days=1)
-                delta = dt - datetime.now()
-                hours, remainder = divmod(delta.seconds, 3600)
-                minutes = remainder // 60
-                days = delta.days
-                if days > 0:
-                    time_str = f"{days}d {hours}h"
+                # e.g. '2026-07-30T08:38:06Z'
+                dt = datetime.strptime(reset_time, "%Y-%m-%dT%H:%M:%SZ")
+                now_utc = datetime.utcnow()
+                if dt > now_utc:
+                    delta = dt - now_utc
+                    hours, remainder = divmod(delta.seconds, 3600)
+                    minutes = remainder // 60
+                    days = delta.days
+                    if days > 0:
+                        time_str = f"{days}d {hours}h"
+                    else:
+                        time_str = f"{hours}h {minutes}m"
                 else:
-                    time_str = f"{hours}h {minutes}m"
+                    time_str = "Resetting..."
             except:
                 pass
         self.itemconfig(self.time_text, text=time_str)
@@ -166,7 +167,7 @@ class UsageWidget:
         self.header.bind("<ButtonPress-1>", self.start_move)
         self.header.bind("<B1-Motion>", self.do_move)
         
-        title = tk.Label(self.header, text="Antigravity: Toolkit", bg="#2D2D2D", fg=TEXT_FG, font=("Segoe UI", 9, "bold"))
+        title = tk.Label(self.header, text="AGY Fuel Gauge", bg="#2D2D2D", fg=TEXT_FG, font=("Segoe UI", 9, "bold"))
         title.pack(side=tk.LEFT, padx=10, pady=5)
         title.bind("<ButtonPress-1>", self.start_move)
         title.bind("<B1-Motion>", self.do_move)
@@ -194,7 +195,7 @@ class UsageWidget:
         self.ext_5h_gauge.pack(side=tk.RIGHT, padx=5)
         
         # Collapsible Toggle
-        self.toggle_btn = tk.Label(self.content, text="▼ 詳細週用量", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 8), cursor="hand2")
+        self.toggle_btn = tk.Label(self.content, text="▼", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 10), cursor="hand2")
         self.toggle_btn.pack(pady=5)
         self.toggle_btn.bind("<Button-1>", self.toggle_weekly)
         self.show_weekly = False
@@ -234,11 +235,11 @@ class UsageWidget:
     def toggle_weekly(self, event=None):
         self.show_weekly = not self.show_weekly
         if self.show_weekly:
-            self.toggle_btn.config(text="▲ 隱藏週用量")
+            self.toggle_btn.config(text="▲")
             self.weekly_arcs_frame.pack(fill=tk.X, before=self.chart_frame)
             self.root.geometry(f"{self.width}x{self.expanded_height}")
         else:
-            self.toggle_btn.config(text="▼ 詳細週用量")
+            self.toggle_btn.config(text="▼")
             self.weekly_arcs_frame.pack_forget()
             self.root.geometry(f"{self.width}x{self.base_height}")
 

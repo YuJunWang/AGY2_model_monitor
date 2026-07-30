@@ -8,5 +8,55 @@
     "timestamp": "2026-07-30T12:54:18.321235",
     "gemini_5h": 69.3,
     "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T12:55:31.777575",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T12:55:32.773522",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T12:57:03.526967",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T12:57:12.569908",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:00:03.547445",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:00:10.862978",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:00:11.763312",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:00:12.578803",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:00:16.229259",
+    "gemini_5h": 67.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:01:42.439959",
+    "gemini_5h": 66.2,
+    "external_5h": 100
   }
 ]

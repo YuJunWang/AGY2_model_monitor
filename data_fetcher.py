@@ -119,12 +119,7 @@ def fetch_usage_data():
             used_pct = round((1 - remaining) * 100, 1)
             reset = bucket.get("resetTime", "")
             if reset:
-                try:
-                    # Convert '2026-07-30T08:38:06Z' to '08:38'
-                    dt = datetime.strptime(reset, "%Y-%m-%dT%H:%M:%SZ")
-                    reset = dt.strftime("%m/%d %H:%M")
-                except:
-                    pass
+                pass # keep the raw ISO string like '2026-07-30T08:38:06Z'
                     
             if bucket.get("window") == "5h":
                 if is_gemini:
