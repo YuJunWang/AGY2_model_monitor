@@ -1,13 +1,13 @@
-﻿# AGY Fuel Gauge 🚀
+# AGY Fuel Gauge 🚀
 
 AGY Fuel Gauge is a background telemetry widget that keeps your AI quotas visible without pulling you out of your flow state.
 
 The trick is surprisingly simple: Antigravity IDE already runs a local background daemon (`language_server.exe`) that handles all your token traffic. We eavesdrop on it. This widget hooks directly into that internal gRPC-Web API, giving you an accurate, real-time view of your Gemini and External model usage—no credentials required, no config files to maintain.
 
 <p align="center">
-  <img src="./assets/preview_5h.png" alt="5-Hour Quota View" width="45%" />
+  <img src="./assets/preview_5h.png?v=2" alt="5-Hour Quota View" width="45%" />
   &nbsp;&nbsp;
-  <img src="./assets/preview_weekly.png" alt="Weekly Quota View" width="45%" />
+  <img src="./assets/preview_weekly.png?v=2" alt="Weekly Quota View" width="45%" />
 </p>
 
 ## ✨ How it actually works
