@@ -175,11 +175,16 @@ class HistoryChart(tk.Canvas):
             max_val = 1
         
         # ── Mirrored Area Chart (Self-Normalized Waveform) ────────────────────────
-        # External grows UP from the middle. Gemini grows DOWN from the middle.
+        # Gemini grows UP from the middle (top half)
+        # External grows DOWN from the middle (bottom half)
         # Both scale to their own local maximums, so they never crush each other.
         step_x = (self.width - 20) / NUM_BUCKETS
-        mid_y = y_base - (y_base - 14) // 2
-        zone_h = (y_base - 14) // 2 - 4
+        
+        # Define strict vertical boundaries to prevent overflow
+        y_top    = 18          # top boundary (below labels)
+        y_bottom = y_base - 2  # bottom boundary (above time axis)
+        mid_y    = (y_top + y_bottom) // 2
+        zone_h   = (mid_y - y_top) - 2   # max height per half, with 2px safety margin
 
         gem_vals = [g for g, e in buckets]
         ext_vals = [e for g, e in buckets]
@@ -193,22 +198,22 @@ class HistoryChart(tk.Canvas):
             cx = 10 + (idx + 0.5) * step_x
             h_g = (g / gem_max) * zone_h
             h_e = (e / ext_max) * zone_h
-            gem_pts.append((cx, mid_y + h_g))   # Gemini grows DOWN from center
-            ext_pts.append((cx, mid_y - h_e))   # External grows UP from center
+            gem_pts.append((cx, mid_y - h_g))   # Gemini grows UP from center
+            ext_pts.append((cx, mid_y + h_e))   # External grows DOWN from center
 
-        # Draw External area (Top half, growing UP) — warm amber, semi-transparent fill
-        poly_ext = [(10, mid_y)] + ext_pts + [(self.width - 10, mid_y)]
-        self.create_polygon(poly_ext, fill="#3D2A0A", outline="")  # dark amber fill
-        if len(ext_pts) > 1:
-            self.create_line(ext_pts, fill=COLOR_EXT_GLOW, width=1.5, smooth=True)
-
-        # Draw Gemini area (Bottom half, growing DOWN) — cool blue, semi-transparent fill
+        # Draw Gemini area (Top half, growing UP) — cool blue fill
         poly_gem = [(10, mid_y)] + gem_pts + [(self.width - 10, mid_y)]
         self.create_polygon(poly_gem, fill="#0A1F30", outline="")  # dark blue fill
         if len(gem_pts) > 1:
             self.create_line(gem_pts, fill=COLOR_GEMINI_GLOW, width=1.5, smooth=True)
 
-        # Mirror axis — slightly brighter to be readable
+        # Draw External area (Bottom half, growing DOWN) — warm amber fill
+        poly_ext = [(10, mid_y)] + ext_pts + [(self.width - 10, mid_y)]
+        self.create_polygon(poly_ext, fill="#3D2A0A", outline="")  # dark amber fill
+        if len(ext_pts) > 1:
+            self.create_line(ext_pts, fill=COLOR_EXT_GLOW, width=1.5, smooth=True)
+
+        # Mirror axis
         self.create_line(10, mid_y, self.width - 10, mid_y, fill="#333639", dash=(3, 3))
 
 
