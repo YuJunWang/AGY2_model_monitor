@@ -33,9 +33,9 @@ class ArcGauge(tk.Canvas):
         self.fg_arc = self.create_arc(*self.bbox, start=180, extent=0, style=tk.ARC, width=self.arc_width, outline=self.color)
         
         # Text elements
-        self.pct_text = self.create_text(size/2, size/2 - 15, text="0%", fill=TEXT_FG, font=("Segoe UI", 18, "bold"))
-        self.time_text = self.create_text(size/2, size/2 + 7, text="--h --m", fill=TEXT_MUTED, font=("Segoe UI", 9))
-        self.title_text = self.create_text(size/2, size/2 + 32, text=title, fill=TEXT_FG, font=("Segoe UI", 9, "bold"), justify="center")
+        self.pct_text = self.create_text(size/2, size/2 - 12, text="--%", fill=TEXT_FG, font=("Segoe UI", 18, "bold"))
+        self.time_text = self.create_text(size/2, size/2 + 10, text="--h --m", fill=TEXT_MUTED, font=("Segoe UI", 8))
+        self.title_text = self.create_text(size/2, size/2 + 28, text=title, fill=TEXT_MUTED, font=("Segoe UI", 9, "bold"), justify="center")
 
     def set_value(self, pct_remaining, reset_time):
         # pct_remaining is 0-100. We start at 180 (left) and sweep negative (clockwise)
@@ -132,10 +132,6 @@ class HistoryChart(tk.Canvas):
         if max_val == 0:
             max_val = 1
         
-        # Total hourly burn rate over the 6-hour window
-        total_burn = sum(g + e for g, e in buckets)
-        hourly_burn = total_burn / 6.0
-        
         # ── Mirrored Area Chart (Self-Normalized Waveform) ────────────────────────
         # External grows UP from the middle. Gemini grows DOWN from the middle.
         # Both scale to their own local maximums, so they never crush each other.
@@ -176,9 +172,26 @@ class HistoryChart(tk.Canvas):
 
 
         # ── Labels ────────────────────────────────────────────────────────────────
-        self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
-        status_color = "#FF5252" if hourly_burn > 20 else ("#E57373" if hourly_burn > 10 else TEXT_MUTED)
-        self.create_text(self.width - 16, 10, text=f"⚡ {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 9), anchor="e")
+        self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 8, "bold"), anchor="w")
+        
+        # Calculate separate burn rates
+        gem_total = sum(g for g, e in buckets)
+        ext_total = sum(e for g, e in buckets)
+        gem_hourly = gem_total / 6.0
+        ext_hourly = ext_total / 6.0
+
+        # External Burn Rate
+        ext_color = "#FF5252" if ext_hourly > 20 else COLOR_EXT
+        ext_str = f"Ext: {round(ext_hourly, 1)}%/h"
+        ext_id = self.create_text(self.width - 16, 10, text=ext_str, fill=ext_color, font=("Segoe UI", 8, "bold"), anchor="e")
+        
+        # Gemini Burn Rate
+        bbox = self.bbox(ext_id)
+        ext_w = bbox[2] - bbox[0] if bbox else 50
+        
+        gem_color = "#FF5252" if gem_hourly > 20 else COLOR_GEMINI
+        gem_str = f"Gem: {round(gem_hourly, 1)}%/h"
+        self.create_text(self.width - 16 - ext_w - 12, 10, text=gem_str, fill=gem_color, font=("Segoe UI", 8, "bold"), anchor="e")
         
         # Time axis: -6h (left), tick marks at -4h & -2h, now (right)
         self.create_text(12, self.height - 5, text="-6h", fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="w")
@@ -231,10 +244,10 @@ class UsageWidget:
         title.bind("<B1-Motion>", self.do_move)
         
         # Refresh and close buttons
-        close_btn = tk.Label(self.header, text="X", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 9, "bold"), cursor="hand2")
+        close_btn = tk.Label(self.header, text="✕", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 10), cursor="hand2")
         close_btn.pack(side=tk.RIGHT, padx=10)
         close_btn.bind("<Button-1>", lambda e: self.hide_window())
-        self._bind_hover(close_btn, TEXT_MUTED, TEXT_FG)
+        self._bind_hover(close_btn, TEXT_MUTED, "#FF5252")  # Red on hover for close
         
         self.refresh_btn = tk.Label(self.header, text="↻", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 12), cursor="hand2")
         self.refresh_btn.pack(side=tk.RIGHT, padx=5)
@@ -278,12 +291,12 @@ class UsageWidget:
         self._bind_hover(self.toggle_btn, TEXT_MUTED, TEXT_FG)
         self.show_weekly = False
         
-        # History Chart
-        self.chart_frame = tk.Frame(self.content, bg="#2A2B2E", bd=1, relief="solid")
-        self.chart_frame.pack(fill=tk.X, pady=(5, 0), padx=5)
+        # History Chart Container (Clean modern border)
+        self.chart_frame = tk.Frame(self.content, bg="#2A2B2E", bd=0, highlightthickness=1, highlightbackground=ARC_BG, highlightcolor=ARC_BG)
+        self.chart_frame.pack(fill=tk.X, pady=(8, 0), padx=5)
         
         self.chart = HistoryChart(self.chart_frame, width=310, height=85)
-        self.chart.pack(padx=5, pady=5)
+        self.chart.pack(padx=2, pady=2)
         
         # Fixed height
         self.root.geometry(f"{self.width}x{self.base_height}")
