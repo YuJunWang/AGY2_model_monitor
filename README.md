@@ -19,6 +19,11 @@ AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusiv
 > **Understanding Usage Percentages**  
 > Gemini and non-Gemini (External) models have vastly different total quota pools. A 1% drop in Gemini quota represents significantly more tokens processed than a 1% drop in External quota. Therefore, you cannot simply compare their raw percentages. The historical usage graph utilizes a **Self-Normalized Mirrored Area Chart** to balance this visual discrepancy, allowing you to clearly see the usage trends of both models without one crushing the other.
 
+## 💻 Compatibility
+- **Antigravity 2.0 (Desktop App)**: Fully supported (Includes CDP telemetry & Sidecar lifecycle automation).
+- **Antigravity IDE**: Fully supported.
+- **Antigravity CLI (`agy`)**: Not directly applicable, as the CLI does not spawn the persistent background Chrome devtools endpoint required for telemetry interception.
+
 ## 🛠️ Installation & Usage
 
 1. **Clone the Repository**
@@ -74,6 +79,11 @@ AGY Fuel Gauge 是一個專為 Antigravity 打造的高質感背景監控儀表�
 > [!NOTE]
 > **關於配額百分比的視覺化說明**  
 > Gemini 與非 Gemini (External) 模型的總可用額度基數相差非常大。Gemini 的 1% 消耗量，實際上代表的處理量遠大於 External 的 1%。因此，兩者的消耗百分比不能單純拿來直接類比。為了完美呈現這個落差，歷史圖表特別採用了 **自我正規化的倒影圖 (Mirrored Area Chart)**：藍色與黃色會各自根據自己的最大值進行縮放，讓兩者的使用趨勢變化能清晰地並排呈現，而不會因為基數差異導致一方在視覺上被徹底壓縮。
+
+## 💻 系統相容性
+- **Antigravity 2.0 (桌面版應用程式)**：完全支援（包含 CDP 遙測抓取與 Sidecar 自動化生命週期）。
+- **Antigravity IDE**：完全支援。
+- **Antigravity CLI (`agy`)**：不適用。因純命令列環境不會常駐開啟可用於攔截通訊的 CDP 端點。
 
 ## 🛠️ 安裝與使用指南
 
