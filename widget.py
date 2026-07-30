@@ -292,11 +292,24 @@ class UsageWidget:
         self.ext_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="External\n(Weekly)", color=COLOR_EXT_WEEKLY)
         self.ext_w_gauge.pack(side=tk.RIGHT, padx=5)
         
-        # Collapsible Toggle
-        self.toggle_btn = tk.Label(self.content, text="▶ Weekly", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 9), cursor="hand2")
-        self.toggle_btn.pack(pady=2)
-        self.toggle_btn.bind("<Button-1>", self.toggle_weekly)
-        self._bind_hover(self.toggle_btn, TEXT_MUTED, TEXT_FG)
+        # Segmented Control Toggle
+        self.toggle_frame = tk.Frame(self.content, bg=BG_COLOR)
+        self.toggle_frame.pack(pady=4)
+        
+        # Pill container
+        self.toggle_container = tk.Frame(self.toggle_frame, bg="#2A2B2E", padx=2, pady=2, bd=0)
+        self.toggle_container.pack()
+
+        seg_font = ("Segoe UI", 8, "bold")
+        
+        self.btn_5h = tk.Label(self.toggle_container, text=" 5-Hour ", font=seg_font, bg="#4A4D51", fg=TEXT_FG, cursor="hand2", padx=12, pady=2)
+        self.btn_5h.pack(side=tk.LEFT)
+        self.btn_5h.bind("<Button-1>", lambda e: self.set_view(False))
+        
+        self.btn_weekly = tk.Label(self.toggle_container, text=" Weekly ", font=seg_font, bg="#2A2B2E", fg=TEXT_MUTED, cursor="hand2", padx=12, pady=2)
+        self.btn_weekly.pack(side=tk.LEFT)
+        self.btn_weekly.bind("<Button-1>", lambda e: self.set_view(True))
+        
         self.show_weekly = False
         
         # History Chart Container (Clean modern border)
@@ -329,14 +342,19 @@ class UsageWidget:
         y = self.root.winfo_y() + deltay
         self.root.geometry(f"+{x}+{y}")
 
-    def toggle_weekly(self, event=None):
-        self.show_weekly = not self.show_weekly
+    def set_view(self, show_weekly):
+        if self.show_weekly == show_weekly:
+            return
+            
+        self.show_weekly = show_weekly
         if self.show_weekly:
-            self.toggle_btn.config(text="◀ 5h")
+            self.btn_5h.config(bg="#2A2B2E", fg=TEXT_MUTED)
+            self.btn_weekly.config(bg="#4A4D51", fg=TEXT_FG)
             self.top_arcs_frame.pack_forget()
             self.weekly_arcs_frame.pack(fill=tk.X)
         else:
-            self.toggle_btn.config(text="▶ Weekly")
+            self.btn_weekly.config(bg="#2A2B2E", fg=TEXT_MUTED)
+            self.btn_5h.config(bg="#4A4D51", fg=TEXT_FG)
             self.weekly_arcs_frame.pack_forget()
             self.top_arcs_frame.pack(fill=tk.X)
 
