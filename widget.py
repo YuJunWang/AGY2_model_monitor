@@ -43,11 +43,19 @@ class ArcGauge(tk.Canvas):
         self.itemconfig(self.fg_arc, extent=extent)
         self.itemconfig(self.pct_text, text=f"{int(pct_remaining)}%")
         
-        # calculate remaining time text
+        # Color-code percentage by remaining amount
+        if pct_remaining <= 20:
+            pct_color = "#FF5252"  # red — critical
+        elif pct_remaining <= 50:
+            pct_color = "#FDD835"  # yellow — warning
+        else:
+            pct_color = TEXT_FG    # normal white
+        self.itemconfig(self.pct_text, fill=pct_color)
+        
+        # Calculate remaining reset time
         time_str = reset_time
         if reset_time and "Z" in reset_time:
             try:
-                # e.g. '2026-07-30T08:38:06Z'
                 dt = datetime.strptime(reset_time, "%Y-%m-%dT%H:%M:%SZ")
                 now_utc = datetime.utcnow()
                 if dt > now_utc:
@@ -61,7 +69,7 @@ class ArcGauge(tk.Canvas):
                         time_str = f"{hours}h {minutes}m"
                 else:
                     time_str = "Resetting..."
-            except:
+            except Exception:
                 pass
         self.itemconfig(self.time_text, text=time_str)
 
@@ -74,8 +82,93 @@ class HistoryChart(tk.Canvas):
     def render(self, history):
         self.delete("all")
         if not history or len(history) < 2:
-            self.create_text(self.width/2, self.height/2, text="等待數據收集中...", fill=TEXT_MUTED, font=("Segoe UI", 9))
+            self.create_text(self.width/2, self.height/2, text="Waiting for data...", fill=TEXT_MUTED, font=("Segoe UI", 9))
             return
+        
+        y_base = self.height - 20
+        self.create_line(10, y_base, self.width-10, y_base, fill=ARC_BG, dash=(2, 2))
+        
+        # Parse and sort all history entries by timestamp
+        parsed = []
+        for r in history:
+            try:
+                ts = datetime.fromisoformat(r["timestamp"])
+                parsed.append((ts, r.get("gemini_5h", 100), r.get("external_5h", 100)))
+            except Exception:
+                continue
+        parsed.sort(key=lambda x: x[0])
+        
+        if len(parsed) < 2:
+            return
+        
+        # ── Fixed 3-min bucket rendering ──────────────────────────────────────────
+        # Regardless of how many refreshes happened, each bucket represents exactly
+        # one 3-minute window. Manual refreshes cannot pollute the chart.
+        now = datetime.now()
+        BUCKET_MIN = 3
+        NUM_BUCKETS = 120  # 6 hours
+        
+        buckets = []  # index 0 = oldest (6h ago), index -1 = newest
+        for i in range(NUM_BUCKETS, 0, -1):
+            b_start = now - timedelta(minutes=i * BUCKET_MIN)
+            b_end   = now - timedelta(minutes=(i - 1) * BUCKET_MIN)
+            
+            # Reference: last reading at or before bucket start
+            before  = [(ts, g, e) for ts, g, e in parsed if ts <= b_start]
+            in_win  = [(ts, g, e) for ts, g, e in parsed if b_start < ts <= b_end]
+            
+            if in_win:
+                ref_g, ref_e = (before[-1][1], before[-1][2]) if before else (in_win[0][1], in_win[0][2])
+                end_g, end_e = in_win[-1][1], in_win[-1][2]
+                gem_drop = max(0, ref_g - end_g)
+                ext_drop = max(0, ref_e - end_e)
+            else:
+                gem_drop = 0
+                ext_drop = 0
+            
+            buckets.append((gem_drop, ext_drop))
+        
+        max_val = max((g + e for g, e in buckets), default=1)
+        if max_val == 0:
+            max_val = 1
+        
+        # Total hourly burn rate over the 6-hour window
+        total_burn = sum(g + e for g, e in buckets)
+        hourly_burn = total_burn / 6.0
+        
+        # Draw stacked area chart (oldest on left, newest on right)
+        step_x = (self.width - 20) / NUM_BUCKETS
+        gem_points = []
+        ext_points = []
+        
+        for idx, (g, e) in enumerate(buckets):
+            cx = 10 + (idx + 0.5) * step_x
+            h_g = (g / max_val) * (self.height - 30)
+            h_e = (e / max_val) * (self.height - 30)
+            gem_points.append((cx, y_base - h_g))
+            ext_points.append((cx, y_base - h_g - h_e))
+        
+        if len(gem_points) > 1:
+            poly_ext = [(10, y_base)] + ext_points + [(self.width - 10, y_base)]
+            self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
+            poly_gem = [(10, y_base)] + gem_points + [(self.width - 10, y_base)]
+            self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
+            self.create_line(gem_points, fill=COLOR_GEMINI, width=1.5, smooth=False)
+        
+        # ── Labels ────────────────────────────────────────────────────────────────
+        self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
+        status_color = "#FF5252" if hourly_burn > 20 else ("#E57373" if hourly_burn > 10 else TEXT_MUTED)
+        self.create_text(self.width - 10, 10, text=f"⚡ {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 9), anchor="e")
+        
+        # Time axis: -6h (left), tick marks at -4h & -2h, now (right)
+        self.create_text(12, self.height - 5, text="-6h", fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="w")
+        self.create_text(self.width - 12, self.height - 5, text="now", fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="e")
+        for bucket_idx, label in [(40, "-4h"), (80, "-2h")]:
+            mark_x = 10 + (bucket_idx + 0.5) * step_x
+            self.create_line(mark_x, y_base - 4, mark_x, y_base, fill=ARC_BG)
+            self.create_text(mark_x, self.height - 5, text=label, fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="center")
+        
+        return  # end of render
             
         # Draw dotted baseline
         y_base = self.height - 20
@@ -195,14 +288,20 @@ class UsageWidget:
         title.bind("<ButtonPress-1>", self.start_move)
         title.bind("<B1-Motion>", self.do_move)
         
-        # Refresh and close
+        # Last updated timestamp (shown after first fetch)
+        self.last_updated_label = tk.Label(self.header, text="", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 7))
+        self.last_updated_label.pack(side=tk.LEFT, padx=6)
+        
+        # Refresh and close buttons
         close_btn = tk.Label(self.header, text="X", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 9, "bold"), cursor="hand2")
         close_btn.pack(side=tk.RIGHT, padx=10)
         close_btn.bind("<Button-1>", lambda e: self.hide_window())
+        self._bind_hover(close_btn, TEXT_MUTED, TEXT_FG)
         
-        refresh_btn = tk.Label(self.header, text="↻", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 12), cursor="hand2")
-        refresh_btn.pack(side=tk.RIGHT, padx=5)
-        refresh_btn.bind("<Button-1>", lambda e: self.trigger_refresh())
+        self.refresh_btn = tk.Label(self.header, text="↻", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 12), cursor="hand2")
+        self.refresh_btn.pack(side=tk.RIGHT, padx=5)
+        self.refresh_btn.bind("<Button-1>", lambda e: self.trigger_refresh())
+        self._bind_hover(self.refresh_btn, TEXT_MUTED, TEXT_FG)
         
         self.content = tk.Frame(self.main_frame, bg=BG_COLOR, padx=10, pady=5)
         self.content.pack(fill=tk.BOTH, expand=True)
@@ -234,6 +333,7 @@ class UsageWidget:
         self.toggle_btn = tk.Label(self.content, text="▶ Weekly", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 9), cursor="hand2")
         self.toggle_btn.pack(pady=2)
         self.toggle_btn.bind("<Button-1>", self.toggle_weekly)
+        self._bind_hover(self.toggle_btn, TEXT_MUTED, TEXT_FG)
         self.show_weekly = False
         
         # History Chart
@@ -245,6 +345,11 @@ class UsageWidget:
         
         # Fixed height
         self.root.geometry(f"{self.width}x{self.base_height}")
+
+    def _bind_hover(self, widget, normal_color, hover_color):
+        """Bind hover highlight to any tk.Label button."""
+        widget.bind("<Enter>", lambda e: widget.config(fg=hover_color))
+        widget.bind("<Leave>", lambda e: widget.config(fg=normal_color))
 
     def start_move(self, event):
         self.x = event.x
@@ -318,6 +423,8 @@ class UsageWidget:
             
     def fetch_and_update(self):
         self.is_fetching = True
+        # Loading feedback: brighten the refresh button while fetching
+        self.root.after(0, lambda: self.refresh_btn.config(fg=COLOR_GEMINI))
         try:
             data = data_fetcher.fetch_usage_data()
             self.root.after(0, self.update_ui_with_data, data)
@@ -325,6 +432,8 @@ class UsageWidget:
             print(f"[AGY Fuel Gauge] Fetch failed: {e}")
         finally:
             self.is_fetching = False
+            # Restore refresh button color
+            self.root.after(0, lambda: self.refresh_btn.config(fg=TEXT_MUTED))
             
     def update_ui_with_data(self, data):
         g = data.get("gemini", {})
@@ -336,7 +445,11 @@ class UsageWidget:
         self.gemini_w_gauge.set_value(g.get("weekly_percent", 0), g.get("reset_time_weekly", "--"))
         self.ext_w_gauge.set_value(e.get("weekly_percent", 0), e.get("reset_time_weekly", "--"))
         
-        # Render history
+        # Update last-updated timestamp in header
+        now_str = datetime.now().strftime("%H:%M")
+        self.last_updated_label.config(text=f"↺ {now_str}")
+        
+        # Render history chart
         history = history_logger.get_history(minutes=360)  # Last 6 hours
         self.chart.render(history)
 
