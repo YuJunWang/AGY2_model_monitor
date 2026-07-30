@@ -1,6 +1,6 @@
 # AGY Fuel Gauge 🚀
 
-AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusively for Antigravity. It monitors your language model quotas (Gemini and External models like Claude/GPT) in real-time, completely bypassing the need for manual browser interactions by utilizing Chrome DevTools Protocol (CDP) to seamlessly hook into your active Antigravity session.
+AGY Fuel Gauge is a lightweight background telemetry widget designed exclusively for Antigravity. It monitors your language model quotas (Gemini and External models) in real-time by securely interfacing with active Antigravity sessions via gRPC-Web, eliminating the need for manual browser interactions.
 
 <p align="center">
   <img src="./assets/preview_5h.png" alt="5-Hour Quota View" width="45%" />
@@ -9,20 +9,20 @@ AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusiv
 </p>
 
 ## ✨ Features
-- **Real-Time Telemetry**: Accurately fetches your 5-hour and weekly remaining quotas directly from the Antigravity gRPC-Web API.
-- **Zero-Wait Authentication**: Deterministically extracts the required `x-codeium-csrf-token` directly from Antigravity's startup logs and calculates dynamic ports via process ID binding—ensuring instant data fetching with zero user interaction required!
-- **Dynamic Arc Gauges**: Beautifully rendered circular progress arcs indicating remaining percentage and precise reset times.
-- **Collapsible Layout**: Quickly toggle between 5-hour and Weekly limits without expanding the widget footprint.
-- **Usage History & Burn Rate**: Logs your usage locally every 3 minutes to generate a historical bar chart and calculate your current hourly burn rate (`🔥 %/h`).
+- **Real-Time Telemetry**: Fetches precise 5-hour and weekly remaining quotas directly from the Antigravity internal gRPC-Web API.
+- **Zero-Configuration Authentication**: Automatically binds to the `language_server.exe` process to discover dynamic network ports, and extracts the necessary `x-codeium-csrf-token` from system logs. This ensures instant and secure data retrieval with zero user setup.
+- **Dynamic Arc Gauges**: Features custom-rendered 270-degree progress arcs indicating remaining percentage and calculated reset times, optimized for OLED dark mode.
+- **Segmented Control Layout**: Seamlessly toggle between 5-Hour and Weekly usage views without expanding the widget footprint.
+- **Usage History & Burn Rate**: Logs local telemetry every 3 minutes to generate a historical waveform chart and calculate current hourly consumption rates (`🔥 %/h`).
 
 > [!NOTE]
 > **Understanding Usage Percentages**  
-> Gemini and non-Gemini (External) models have vastly different total quota pools. A 1% drop in Gemini quota represents significantly more tokens processed than a 1% drop in External quota. Therefore, you cannot simply compare their raw percentages. The historical usage graph utilizes a **Self-Normalized Mirrored Area Chart** to balance this visual discrepancy, allowing you to clearly see the usage trends of both models without one crushing the other.
+> Gemini and External models possess significantly different total quota baselines. A 1% consumption in Gemini represents a substantially higher token volume than 1% in an External model. To address this visual disparity, the historical usage graph utilizes a **Self-Normalized Mirrored Area Chart**. Both data streams scale independently to their respective local maximums, allowing for clear side-by-side trend analysis.
 
 ## 💻 Compatibility
-- **Antigravity 2.0 (Desktop App)**: Fully supported (Includes CDP telemetry & Sidecar lifecycle automation).
+- **Antigravity 2.0 (Desktop App)**: Fully supported (Integrates with Sidecar lifecycle management).
 - **Antigravity IDE**: Fully supported.
-- **Antigravity CLI (`agy`)**: Not directly applicable, as the CLI does not spawn the persistent background Chrome devtools endpoint required for telemetry interception.
+- **Antigravity CLI (`agy`)**: Not applicable. The CLI environment does not spawn the persistent language server required for background telemetry.
 
 ## 🛠️ Installation & Usage
 
@@ -33,17 +33,17 @@ AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusiv
    ```
 
 2. **Install Dependencies**
-   Ensure you have Python 3 installed.
+   Requires Python 3.
    ```bash
    pip install pystray Pillow
    ```
 
 3. **Automate with Antigravity Sidecar (Highly Recommended)**
-   This widget is designed to run seamlessly in the background as an [Antigravity Sidecar](https://antigravity.google/docs/sidecars). By setting it up this way, the widget becomes an "immortal" background process that starts automatically when you open your workspace, stays out of your way, and automatically revives if it crashes.
+   Deploying the widget as an [Antigravity Sidecar](https://antigravity.google/docs/sidecars) allows it to run as a daemon process. It will launch automatically with your workspace and restart upon failure.
    
-   - Open your Antigravity configuration folder (typically `C:\Users\<YourUsername>\.gemini\config\sidecars\`).
-   - Create a new folder named `agy-fuel-gauge`.
-   - Create a file named `sidecar.json` inside that folder with the following content (update the `args` path to match your actual clone directory):
+   - Navigate to your Antigravity configuration directory (typically `C:\Users\<YourUsername>\.gemini\config\sidecars\`).
+   - Create a new directory named `agy-fuel-gauge`.
+   - Create a file named `sidecar.json` inside this directory with the following configuration (update the `args` path to match your installation directory):
      ```json
      {
        "description": "AGY Fuel Gauge",
@@ -54,11 +54,11 @@ AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusiv
        "restart_policy": "always"
      }
      ```
-   - **How to use it**: Restart your Antigravity IDE. You don't need to run any commands; the system will automatically launch the widget silently. You will see a blue `AGY` icon in your Windows system tray (bottom right).
-   - **Hide/Show**: Click the `✕` on the widget to hide it (it continues logging in the background). Right-click the system tray icon and select "Show Widget" to bring it back.
+   - **Usage**: Restart your Antigravity IDE. The system will silently initialize the widget, indicated by the AGY icon in the Windows system tray.
+   - **Visibility**: Closing the widget via the `✕` button minimizes it to the system tray while background telemetry continues. Right-click the tray icon and select "Show Widget" to restore the interface.
 
-4. **Manual Run**
-   You can also simply run the widget manually without integrating it into Antigravity:
+4. **Manual Execution**
+   You can also execute the widget manually:
    ```bash
    pythonw widget.py
    ```
@@ -67,23 +67,23 @@ AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusiv
 
 # AGY Fuel Gauge (中文說明) 🚀
 
-AGY Fuel Gauge 是一個專為 Antigravity 打造的高質感背景監控儀表板。它能即時追蹤您的 AI 模型額度（包含 Gemini 與 Claude/GPT 等外部模型）。本工具利用 Chrome DevTools Protocol (CDP) 技術直接掛載於 Antigravity，達到「全自動、無感」的安全認證與數據抓取。
+AGY Fuel Gauge 是一個專為 Antigravity 設計的背景監控儀表板。它能即時追蹤您的 AI 模型額度（包含 Gemini 與 External 外部模型），透過直接與 Antigravity 內部的 gRPC-Web 服務對接，提供安全、全自動的數據監測。
 
 ## ✨ 核心功能
-- **即時遙測**：直接串接 Antigravity 底層的 gRPC-Web API，獲取最精確的 5 小時與週用量剩餘額度。
-- **零等待認證**：透過精準綁定 Antigravity 的進程 ID 來計算動態通訊埠，並直接從系統日誌解析 `x-codeium-csrf-token`。達成 100% 穩定且小於 0.1 秒的瞬間讀取，完全不需要任何網路封包攔截或使用者前置操作！
-- **動態圓弧儀表**：純手工繪製的高質感圓弧進度條，並能精準推算出下一次的額度重置時間。
-- **原地切換視圖**：點擊切換按鈕，即可在 5 小時額度與週額度之間快速切換，不佔用額外螢幕空間。
-- **歷史分析與燃燒率**：每 3 分鐘自動於本地端紀錄一次額度變化，並在視窗下方繪製長條圖，即時計算您的每小時額度消耗速度 (`🔥 %/h`)。
+- **即時遙測**：直接串接 Antigravity 底層 API，獲取精確的 5 小時與週用量剩餘配額。
+- **零配置認證**：自動鎖定 `language_server.exe` 進程以取得動態通訊埠，並從系統日誌中提取 `x-codeium-csrf-token`。無須手動設定或網頁攔截，即可達成穩定且即時的數據讀取。
+- **動態圓弧儀表**：自定義渲染的高對比 270 度圓弧進度條，具備發光特效，並能精確換算下次配額重置時間。
+- **整合式視圖**：透過 Segmented Control 介面，在 5 小時額度與週額度之間快速切換，維持介面簡潔。
+- **歷史分析與消耗率**：每 3 分鐘自動進行本地紀錄，於視窗下方繪製雙向面積圖，並即時計算每小時額度消耗速率 (`🔥 %/h`)。
 
 > [!NOTE]
 > **關於配額百分比的視覺化說明**  
-> Gemini 與非 Gemini (External) 模型的總可用額度基數相差非常大。Gemini 的 1% 消耗量，實際上代表的處理量遠大於 External 的 1%。因此，兩者的消耗百分比不能單純拿來直接類比。為了完美呈現這個落差，歷史圖表特別採用了 **自我正規化的倒影圖 (Mirrored Area Chart)**：藍色與黃色會各自根據自己的最大值進行縮放，讓兩者的使用趨勢變化能清晰地並排呈現，而不會因為基數差異導致一方在視覺上被徹底壓縮。
+> Gemini 與非 Gemini (External) 模型的總可用額度基準差異巨大。Gemini 的 1% 消耗量在實際運算中遠高於 External 的 1%。為了解決這項視覺不對稱，歷史圖表採用了**自我正規化的倒影圖 (Mirrored Area Chart)**。雙方數據會根據各自的局部最大值進行獨立縮放，確保兩種模型的使用趨勢皆能清晰呈現，互不干擾。
 
 ## 💻 系統相容性
-- **Antigravity 2.0 (桌面版應用程式)**：完全支援（包含 CDP 遙測抓取與 Sidecar 自動化生命週期）。
+- **Antigravity 2.0 (桌面版應用程式)**：完全支援（支援 Sidecar 自動化生命週期管理）。
 - **Antigravity IDE**：完全支援。
-- **Antigravity CLI (`agy`)**：不適用。因純命令列環境不會常駐開啟可用於攔截通訊的 CDP 端點。
+- **Antigravity CLI (`agy`)**：不適用。純命令列環境不會啟動常駐的語言伺服器供背景數據抓取。
 
 ## 🛠️ 安裝與使用指南
 
@@ -94,15 +94,15 @@ AGY Fuel Gauge 是一個專為 Antigravity 打造的高質感背景監控儀表�
    ```
 
 2. **安裝必備套件**
-   請確認您已安裝 Python 3，接著執行以下指令：
+   請確認環境中已安裝 Python 3，並執行：
    ```bash
    pip install pystray Pillow
    ```
 
-3. **設定為 Antigravity Sidecar 自動啟動 (強烈推薦)**
-   本工具最理想的運作方式，是作為 Antigravity 的 [Sidecar (邊車)](https://antigravity.google/docs/sidecars) 在背景默默運行。設定完成後，它就會變成一個具備「不死鳥」屬性的輔助服務：只要你打開專案它就會自動啟動，就算遇到崩潰也會被系統瞬間自動重啟，達到真正的全自動化。
+3. **配置為 Antigravity Sidecar 自動啟動 (強烈推薦)**
+   建議將本工具配置為 [Sidecar (邊車)](https://antigravity.google/docs/sidecars) 服務。配置後，儀表板將隨開發環境自動啟動，並由系統守護進程確保其持續運行 (自動重啟)。
    
-   - **設定方式**：打開您的 Antigravity 設定資料夾（通常位於 `C:\Users\<您的使用者名稱>\.gemini\config\sidecars\`），建立一個名為 `agy-fuel-gauge` 的新資料夾，並在裡面建立一個 `sidecar.json` 檔案（請記得將 `args` 替換成您實際專案的路徑）：
+   - **設定方式**：前往您的 Antigravity 設定目錄（通常位於 `C:\Users\<您的使用者名稱>\.gemini\config\sidecars\`），建立名為 `agy-fuel-gauge` 的目錄，並在其中建立 `sidecar.json` 檔案（請將 `args` 替換為實際的專案路徑）：
      ```json
      {
        "description": "AGY Fuel Gauge",
@@ -113,11 +113,12 @@ AGY Fuel Gauge 是一個專為 Antigravity 打造的高質感背景監控儀表�
        "restart_policy": "always"
      }
      ```
-   - **如何啟動與使用**：重新啟動您的 Antigravity IDE 即可！您**完全不需要手動點擊或輸入任何指令**。系統會在背景使用 `pythonw` 靜默啟動程式，此時您會在 Windows 右下角的系統列看見藍色的 AGY 圖示。
-   - **隱藏與喚醒**：點擊小工具右上角的 `✕` 只會「隱藏」視窗，程式依然會在背景偷偷記錄你的用量。需要看數據時，只要在右下角系統匣圖示點擊右鍵選擇 `Show Widget`，它就會瞬間彈出。
+   - **啟動方式**：重新啟動 Antigravity IDE 即可。系統將於背景靜默啟動程式，並在 Windows 系統匣顯示藍色的 AGY 圖示。
+   - **視窗管理**：點擊小工具右上角的 `✕` 僅會將視窗隱藏至系統匣，背景記錄功能將持續運作。若需檢視數據，對系統匣圖示點擊右鍵並選擇 `Show Widget` 即可還原視窗。
 
-4. **手動啟動**
-   如果您不想設定 Sidecar，也可以直接手動點擊或執行指令來啟動：
+4. **手動執行**
+   若無需 Sidecar 自動化管理，亦可直接手動啟動：
    ```bash
    pythonw widget.py
    ```
+
