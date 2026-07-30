@@ -136,24 +136,25 @@ class HistoryChart(tk.Canvas):
         total_burn = sum(g + e for g, e in buckets)
         hourly_burn = total_burn / 6.0
         
-        # Draw stacked area chart (oldest on left, newest on right)
+        # Draw stacked bar chart (oldest on left, newest on right)
         step_x = (self.width - 20) / NUM_BUCKETS
-        gem_points = []
-        ext_points = []
+        bar_w = max(1.0, step_x - 0.5)
         
         for idx, (g, e) in enumerate(buckets):
-            cx = 10 + (idx + 0.5) * step_x
+            if g == 0 and e == 0:
+                continue
+                
+            x_left = 10 + idx * step_x
             h_g = (g / max_val) * (self.height - 30)
             h_e = (e / max_val) * (self.height - 30)
-            gem_points.append((cx, y_base - h_g))
-            ext_points.append((cx, y_base - h_g - h_e))
-        
-        if len(gem_points) > 1:
-            poly_ext = [(10, y_base)] + ext_points + [(self.width - 10, y_base)]
-            self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
-            poly_gem = [(10, y_base)] + gem_points + [(self.width - 10, y_base)]
-            self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
-            self.create_line(gem_points, fill=COLOR_GEMINI, width=1.5, smooth=False)
+            
+            # Bottom part: Gemini (Blue)
+            if h_g > 0:
+                self.create_rectangle(x_left, y_base - h_g, x_left + bar_w, y_base, fill=COLOR_GEMINI, outline="")
+                
+            # Top part: External (Yellow)
+            if h_e > 0:
+                self.create_rectangle(x_left, y_base - h_g - h_e, x_left + bar_w, y_base - h_g, fill=COLOR_EXT, outline="")
         
         # ── Labels ────────────────────────────────────────────────────────────────
         self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
