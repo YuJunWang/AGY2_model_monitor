@@ -124,46 +124,64 @@ class HistoryChart(tk.Canvas):
             if g == 0 and e == 0:
                 self.create_rectangle(start_x, y_base-2, start_x + bar_w, y_base, fill=ARC_BG, outline="")
                 
-            start_x += bar_w + spacing
+            burn_str = f"🔥 {burn_rate:.1f}%/h"
+            burn_color = "#FF5252" if burn_rate > 20 else TEXT_MUTED
+            self.itemconfig(self.burn_text, text=burn_str, fill=burn_color)
             
-        # Stats text
-        avg_burn = sum([g+e for g,e in display_deltas]) / len(display_deltas)
-        hourly_burn = avg_burn * 60 / 3 # assuming 3 min intervals
+        # Draw bars
+        # Show last 3 hours max (about 60 points if 3 min intervals)
+        points = history_data[-60:]
         
-        # Usage history title
-        self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
-        self.create_text(self.width-10, 10, text=f"max: {round(max_burn, 1)}%", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="e")
+        max_val = max([p.get("gemini_5h_used", 0) for p in points] + [1])
+        self.itemconfig(self.max_text, text=f"max: {max_val:.1f}%")
         
-        self.create_text(10, self.height-5, text=f"Last {len(display_deltas)*3} min", fill=TEXT_MUTED, font=("Segoe UI", 8), anchor="w")
+        bar_w = (self.w - 20) / max(60, len(points))
+        spacing = 1
         
-        status_color = "#FF5252" if hourly_burn > 20 else ("#FFB74D" if hourly_burn > 10 else TEXT_MUTED)
-        self.create_text(self.width-10, self.height-5, text=f"🔥 {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 8), anchor="e")
+        for i, pt in enumerate(points):
+            val = pt.get("gemini_5h_used", 0)
+            bar_h = (val / max_val) * (self.h - 30)
+            
+            x0 = 10 + i * bar_w
+            y0 = self.h - 5 - bar_h
+            x1 = x0 + bar_w - spacing
+            y1 = self.h - 5
+            
+            self.create_rectangle(x0, y0, x1, y1, fill=COLOR_GEMINI, outline="", tags="bar")
 
 class UsageWidget:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("AGY Monitor")
+        self.root.title("AGY Fuel Gauge")
+        self.root.geometry("340x280")
         self.root.configure(bg=BG_COLOR)
         self.root.attributes('-topmost', True)
         self.root.overrideredirect(True)
         self.root.withdraw()
         
         self.width = 340
+        self.base_height = 290
+        
+        # Variables for dragging
+        self.x = 0
+        self.y = 0
+        
         self.build_ui()
         self.setup_tray()
         
         self.is_fetching = False
         self.update_thread = threading.Thread(target=self.auto_update_loop, daemon=True)
         self.update_thread.start()
-
+        
     def build_ui(self):
-        # Main Frame with border
-        self.main_frame = tk.Frame(self.root, bg=BG_COLOR, highlightbackground="#444444", highlightthickness=1)
+        # Main container with border
+        self.main_frame = tk.Frame(self.root, bg=BG_COLOR, highlightbackground="#3A3B3C", highlightthickness=1)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Header (Draggable)
-        self.header = tk.Frame(self.main_frame, bg="#2D2D2D", height=30)
+        # Header (Drag handle)
+        self.header = tk.Frame(self.main_frame, bg="#2D2D2D", height=24)
         self.header.pack(fill=tk.X)
+        self.header.pack_propagate(False)
         self.header.bind("<ButtonPress-1>", self.start_move)
         self.header.bind("<B1-Motion>", self.do_move)
         
@@ -181,7 +199,7 @@ class UsageWidget:
         refresh_btn.pack(side=tk.RIGHT, padx=5)
         refresh_btn.bind("<Button-1>", lambda e: self.trigger_refresh())
         
-        self.content = tk.Frame(self.main_frame, bg=BG_COLOR, padx=10, pady=10)
+        self.content = tk.Frame(self.main_frame, bg=BG_COLOR, padx=10, pady=5)
         self.content.pack(fill=tk.BOTH, expand=True)
         
         # Container for Arcs to keep height constant
@@ -208,20 +226,19 @@ class UsageWidget:
         self.ext_w_gauge.pack(side=tk.RIGHT, padx=5)
         
         # Collapsible Toggle
-        self.toggle_btn = tk.Label(self.content, text="▶ 切換週用量", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 9), cursor="hand2")
-        self.toggle_btn.pack(pady=5)
+        self.toggle_btn = tk.Label(self.content, text="▶ Weekly", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 9), cursor="hand2")
+        self.toggle_btn.pack(pady=2)
         self.toggle_btn.bind("<Button-1>", self.toggle_weekly)
         self.show_weekly = False
         
         # History Chart
         self.chart_frame = tk.Frame(self.content, bg="#2A2B2E", bd=1, relief="solid")
-        self.chart_frame.pack(fill=tk.X, pady=(10, 0), padx=5)
+        self.chart_frame.pack(fill=tk.X, pady=(5, 0), padx=5)
         
-        self.chart = HistoryChart(self.chart_frame, width=310, height=90)
+        self.chart = HistoryChart(self.chart_frame, width=310, height=85)
         self.chart.pack(padx=5, pady=5)
         
         # Fixed height
-        self.base_height = 320
         self.root.geometry(f"{self.width}x{self.base_height}")
 
     def start_move(self, event):
@@ -238,11 +255,11 @@ class UsageWidget:
     def toggle_weekly(self, event=None):
         self.show_weekly = not self.show_weekly
         if self.show_weekly:
-            self.toggle_btn.config(text="◀ 返回 5h 用量")
+            self.toggle_btn.config(text="◀ 5h")
             self.top_arcs_frame.pack_forget()
             self.weekly_arcs_frame.pack(fill=tk.X)
         else:
-            self.toggle_btn.config(text="▶ 切換週用量")
+            self.toggle_btn.config(text="▶ Weekly")
             self.weekly_arcs_frame.pack_forget()
             self.top_arcs_frame.pack(fill=tk.X)
 
