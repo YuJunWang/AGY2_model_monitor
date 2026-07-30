@@ -1,4 +1,4 @@
-﻿# AGY Fuel Gauge 🚀
+# AGY Fuel Gauge 🚀
 
 AGY Fuel Gauge is a background telemetry widget built to solve a simple problem: keeping track of your AI quotas without breaking your flow state. 
 
@@ -12,7 +12,7 @@ It hooks directly into Antigravity's internal gRPC-Web API to give you an accura
 
 ## ✨ How it actually works
 
-- **Zero Auth Setup**: The script automatically scans for your active `language_server.exe` process and rips the `x-codeium-csrf-token` straight from the startup logs. You never have to touch a config file or deal with logins.
+- **Zero Auth Setup**: The script automatically scans for your active `language_server.exe` process to dynamically find its listening Port, and simply rips the `x-codeium-csrf-token` straight from the startup logs. You never have to touch a config file or deal with logins.
 - **Custom UI**: We built a custom 270-degree arc gauge specifically optimized to look good on OLED black backgrounds. Plus, it calculates the exact time your quota will reset.
 - **Hourly Burn Rate**: To help you pace yourself, it saves a local snapshot every 3 minutes so it can calculate your exact `🔥 %/h` consumption speed.
 
@@ -70,7 +70,7 @@ Once that's done, just restart your Antigravity IDE. You should see a little blu
 
 ## ✨ 它是怎麼運作的？
 
-- **自動找 Port 與 Token**：這支程式會去系統裡找 `language_server.exe` 這個 Process，並從啟動日誌直接把 `x-codeium-csrf-token` 抽出來。這意味著你不需要去設定任何麻煩的設定檔。
+- **自動找 Port 與 Token**：這支程式會去系統裡找 `language_server.exe` 這個 Process 來定位目前本機端監聽的 Port，並從啟動日誌直接把 `x-codeium-csrf-token` 抽出來。這意味著你不需要去設定任何麻煩的設定檔。
 - **270 度弧形儀表板**：為了讓畫面看起來更有質感，我們寫了一個專門配對 OLED 黑底的 UI 介面，而且還會幫你算好下一次配額重新發放的精準時間。
 - **燃燒速率**：它每 3 分鐘會在背景存一次檔，藉此來算出你現在每小時消耗了多少額度 (`🔥 %/h`)，讓你可以稍微控制一下使用節奏。
 
