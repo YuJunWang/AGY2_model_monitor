@@ -286,10 +286,6 @@ class UsageWidget:
         title.bind("<ButtonPress-1>", self.start_move)
         title.bind("<B1-Motion>", self.do_move)
         
-        # Last updated timestamp (shown after first fetch)
-        self.last_updated_label = tk.Label(self.header, text="", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 7))
-        self.last_updated_label.pack(side=tk.RIGHT, padx=5)
-        
         # Refresh and close buttons
         close_btn = tk.Label(self.header, text="X", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 9, "bold"), cursor="hand2")
         close_btn.pack(side=tk.RIGHT, padx=10)
@@ -300,6 +296,10 @@ class UsageWidget:
         self.refresh_btn.pack(side=tk.RIGHT, padx=5)
         self.refresh_btn.bind("<Button-1>", lambda e: self.trigger_refresh())
         self._bind_hover(self.refresh_btn, TEXT_MUTED, TEXT_FG)
+        
+        # Last updated timestamp (shown after first fetch)
+        self.last_updated_label = tk.Label(self.header, text="", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 7))
+        self.last_updated_label.pack(side=tk.RIGHT, padx=5)
         
         self.content = tk.Frame(self.main_frame, bg=BG_COLOR, padx=10, pady=5)
         self.content.pack(fill=tk.BOTH, expand=True)
@@ -445,7 +445,7 @@ class UsageWidget:
         
         # Update last-updated timestamp in header
         now_str = datetime.now().strftime("%H:%M")
-        self.last_updated_label.config(text=f"↺ {now_str}")
+        self.last_updated_label.config(text=now_str)
         
         # Render history chart
         history = history_logger.get_history(minutes=360)  # Last 6 hours
