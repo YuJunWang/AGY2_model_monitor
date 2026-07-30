@@ -136,26 +136,37 @@ class HistoryChart(tk.Canvas):
         total_burn = sum(g + e for g, e in buckets)
         hourly_burn = total_burn / 6.0
         
-        # Draw stacked bar chart (oldest on left, newest on right)
-        step_x = (self.width - 20) / NUM_BUCKETS
-        bar_w = max(1.0, step_x - 0.5)
+        # ── Reference-style stacked bar chart ─────────────────────────────────────
+        # Matches Antigravity Toolkit UI: thin bars, Gemini (blue) at bottom,
+        # External (orange) stacked on top. Each bar = one 3-min bucket.
+        step_x    = (self.width - 20) / NUM_BUCKETS
+        bar_w     = max(1.5, step_x - 0.8)
+        chart_h   = y_base - 14   # drawable height (excluding top label area)
         
         for idx, (g, e) in enumerate(buckets):
             if g == 0 and e == 0:
                 continue
-                
-            x_left = 10 + idx * step_x
-            h_g = (g / max_val) * (self.height - 30)
-            h_e = (e / max_val) * (self.height - 30)
             
-            # Bottom part: Gemini (Blue)
-            if h_g > 0:
-                self.create_rectangle(x_left, y_base - h_g, x_left + bar_w, y_base, fill=COLOR_GEMINI, outline="")
-                
-            # Top part: External (Yellow)
-            if h_e > 0:
-                self.create_rectangle(x_left, y_base - h_g - h_e, x_left + bar_w, y_base - h_g, fill=COLOR_EXT, outline="")
-        
+            x_left = 10 + idx * step_x
+            h_g = (g / max_val) * chart_h
+            h_e = (e / max_val) * chart_h
+            
+            # Gemini (blue) — drawn from baseline up
+            if h_g > 0.5:
+                self.create_rectangle(
+                    x_left, y_base - h_g,
+                    x_left + bar_w, y_base,
+                    fill=COLOR_GEMINI, outline=""
+                )
+            
+            # External (amber) — stacked on top of Gemini
+            if h_e > 0.5:
+                self.create_rectangle(
+                    x_left, y_base - h_g - h_e,
+                    x_left + bar_w, y_base - h_g,
+                    fill=COLOR_EXT, outline=""
+                )
+
         # ── Labels ────────────────────────────────────────────────────────────────
         self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
         status_color = "#FF5252" if hourly_burn > 20 else ("#E57373" if hourly_burn > 10 else TEXT_MUTED)
@@ -170,83 +181,7 @@ class HistoryChart(tk.Canvas):
             self.create_text(mark_x, self.height - 5, text=label, fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="center")
         
         return  # end of render
-            
-        # Draw dotted baseline
-        y_base = self.height - 20
-        self.create_line(10, y_base, self.width-10, y_base, fill=ARC_BG, dash=(2, 2))
-        
-        # Calculate deltas using ACTUAL timestamps for accuracy
-        deltas = []  # (gem_burn, ext_burn, interval_minutes)
-        for i in range(1, len(history)):
-            prev = history[i-1]
-            curr = history[i]
-            gem_burn = max(0, prev.get("gemini_5h", 100) - curr.get("gemini_5h", 100))
-            ext_burn = max(0, prev.get("external_5h", 100) - curr.get("external_5h", 100))
-            # Compute actual time gap between records (handles sleep/gaps correctly)
-            try:
-                t_prev = datetime.fromisoformat(prev["timestamp"])
-                t_curr = datetime.fromisoformat(curr["timestamp"])
-                interval_min = max(1, (t_curr - t_prev).total_seconds() / 60)
-            except Exception:
-                interval_min = 3  # fallback to assumed interval
-            deltas.append((gem_burn, ext_burn, interval_min))
-            
-        if not deltas:
-            return
 
-        # Compute time-accurate hourly burn rate BEFORE slicing for display
-        total_burn = sum(g + e for g, e, _ in deltas)
-        total_min = sum(t for _, _, t in deltas)
-        hourly_burn = (total_burn / total_min) * 60 if total_min > 0 else 0
-
-        # Simplify to (g, e) tuples for drawing
-        simple_deltas = [(g, e) for g, e, _ in deltas]
-            
-        max_burn = max(g + e for g, e in simple_deltas) if simple_deltas else 1
-        if max_burn == 0:
-            max_burn = 1  # avoid div by zero
-            
-        # Area chart — exactly 6 hours (120 × 3-min points), right-anchored
-        max_points = 120
-        step_x = (self.width - 20) / max_points
-        display_deltas = simple_deltas[-max_points:]
-        display_deltas.reverse()  # newest → leftmost in iteration, drawn right-to-left
-        
-        gem_points = []
-        ext_points = []
-        curr_x = self.width - 10
-        
-        for g, e in display_deltas:
-            h_g = (g / max_burn) * (self.height - 30)
-            h_e = (e / max_burn) * (self.height - 30)
-            gem_points.append((curr_x, y_base - h_g))
-            ext_points.append((curr_x, y_base - h_g - h_e))
-            curr_x -= step_x
-            
-        if len(gem_points) == 1:
-            # Need ≥2 points for polygon; duplicate the single point
-            gem_points.append((curr_x, gem_points[0][1]))
-            ext_points.append((curr_x, ext_points[0][1]))
-            curr_x -= step_x
-            
-        if gem_points:
-            # External area (drawn first, underneath Gemini)
-            poly_ext = [(self.width - 10, y_base)] + ext_points + [(curr_x + step_x, y_base)]
-            self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
-            # Gemini area
-            poly_gem = [(self.width - 10, y_base)] + gem_points + [(curr_x + step_x, y_base)]
-            self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
-            # Crisp top-edge line for Gemini
-            if len(gem_points) > 1:
-                self.create_line(gem_points, fill=COLOR_GEMINI, width=1.5, smooth=False)
-            
-        # Labels
-        self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
-        self.create_text(self.width-10, 10, text=f"max: {round(max_burn, 1)}%", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="e")
-        self.create_text(10, self.height-5, text="Last 6 Hours", fill=TEXT_MUTED, font=("Segoe UI", 8), anchor="w")
-        
-        status_color = "#FF5252" if hourly_burn > 20 else ("#E57373" if hourly_burn > 10 else TEXT_MUTED)
-        self.create_text(self.width-10, self.height-5, text=f"🔥 {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 8), anchor="e")
 
 class UsageWidget:
     def __init__(self):
