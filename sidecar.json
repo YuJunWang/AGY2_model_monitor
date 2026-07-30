@@ -1,0 +1,8 @@
+{
+  "description": "Antigravity Model Usage Monitor Widget",
+  "command": "pythonw",
+  "args": [
+    "widget.py"
+  ],
+  "restart_policy": "always"
+}
