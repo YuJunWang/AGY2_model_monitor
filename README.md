@@ -61,6 +61,7 @@ It hooks directly into Antigravity's internal gRPC-Web API to give you an accura
 Once that's done, just restart your Antigravity IDE. You should see a little blue AGY icon pop up in your Windows system tray. (Closing the window just hides it in the tray while it keeps logging; right-click the tray icon to show it again).
 
 ---
+
 # AGY Fuel Gauge (中文說明) 🚀
 
 寫程式時若要隨時關注 AI 額度，頻繁切換視窗往往會打斷心流，這正是 AGY Fuel Gauge 誕生的原因。
