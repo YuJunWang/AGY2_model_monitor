@@ -17,50 +17,83 @@ if ctypes.windll.kernel32.GetLastError() == 183: # ERROR_ALREADY_EXISTS
 import data_fetcher
 import history_logger
 
-BG_COLOR = "#202124" # Dark theme background
-ARC_BG = "#3C4043"
-TEXT_FG = "#E8EAED"
-TEXT_MUTED = "#9AA0A6"
-COLOR_GEMINI = "#4FC3F7"
-COLOR_GEMINI_WEEKLY = "#0D8ABF" # Darker blue for Weekly
-COLOR_EXT = "#FFB74D"
-COLOR_EXT_WEEKLY = "#C97E1E" # Darker orange for Weekly
+BG_COLOR       = "#121212"  # OLED Deep Dark
+HEADER_COLOR   = "#1E1E1E"  # Slightly lighter header
+SURFACE_COLOR  = "#1A1A1A"  # Card/chart surface
+ARC_BG         = "#2E3033"  # Dimmed arc track
+TEXT_FG        = "#F0F2F4"  # Near-white primary text
+TEXT_MUTED     = "#7A8086"  # Muted secondary text
+COLOR_GEMINI        = "#29B6F6"  # Bright sky blue
+COLOR_GEMINI_GLOW   = "#81D4FA"  # Lighter blue for glow tip
+COLOR_GEMINI_WEEKLY = "#0288D1"
+COLOR_EXT           = "#FFA726"  # Warm amber
+COLOR_EXT_GLOW      = "#FFE082"  # Light amber for glow tip
+COLOR_EXT_WEEKLY    = "#E65100"
 
 class ArcGauge(tk.Canvas):
-    def __init__(self, parent, size=140, title="Title", color="#4FC3F7", **kwargs):
+    def __init__(self, parent, size=140, title="Title", color="#29B6F6", glow_color="#81D4FA", **kwargs):
         super().__init__(parent, width=size, height=size, bg=BG_COLOR, highlightthickness=0, **kwargs)
         self.size = size
         self.color = color
+        self.glow_color = glow_color
         self.arc_width = size * 0.12
         pad = self.arc_width + 5
         self.bbox = (pad, pad, size - pad, size - pad)
+        self._pct = 0  # Track current percentage for glow dot calc
         
-        # bg arc
-        self.create_arc(*self.bbox, start=0, extent=180, style=tk.ARC, width=self.arc_width, outline=ARC_BG)
-        # fg arc (dynamically updated)
-        self.fg_arc = self.create_arc(*self.bbox, start=180, extent=0, style=tk.ARC, width=self.arc_width, outline=self.color)
+        # 270° arc: gap opens at the bottom (225° → clockwise → 315°)
+        # bg arc track: start=225°, sweep -270° clockwise to 315°
+        self.create_arc(*self.bbox, start=225, extent=-270, style=tk.ARC, width=self.arc_width, outline=ARC_BG)
+        # fg arc: starts at 225°, extent grows clockwise (negative)
+        self.fg_arc = self.create_arc(*self.bbox, start=225, extent=0, style=tk.ARC, width=self.arc_width, outline=self.color)
+        # Glow dot at arc tip (drawn after arc so it's on top)
+        self.glow_outer = self.create_oval(0, 0, 0, 0, fill=self.glow_color, outline="", state="hidden")
+        self.glow_inner = self.create_oval(0, 0, 0, 0, fill="#FFFFFF",       outline="", state="hidden")
         
-        # Text elements
-        self.pct_text = self.create_text(size/2, size/2 - 12, text="--%", fill=TEXT_FG, font=("Segoe UI", 18, "bold"))
-        self.time_text = self.create_text(size/2, size/2 + 10, text="--h --m", fill=TEXT_MUTED, font=("Segoe UI", 8))
-        self.title_text = self.create_text(size/2, size/2 + 28, text=title, fill=TEXT_MUTED, font=("Segoe UI", 9, "bold"), justify="center")
+        # Text elements — vertically centered in the enclosed area
+        self.pct_text  = self.create_text(size/2, size/2 - 8,  text="--%",    fill=TEXT_FG,    font=("Segoe UI", 20, "bold"))
+        self.time_text = self.create_text(size/2, size/2 + 14,  text="--h --m", fill=TEXT_MUTED, font=("Segoe UI", 8))
+        self.title_text= self.create_text(size/2, size/2 + 38,  text=title,    fill=TEXT_MUTED, font=("Segoe UI", 9, "bold"), justify="center")
 
     def set_value(self, pct_remaining, reset_time):
-        # pct_remaining is 0-100. We start at 180 (left) and sweep negative (clockwise)
-        extent = -(180 * (pct_remaining / 100))
+        import math
+        self._pct = pct_remaining
+        # Arc: starts at 225° (lower-left), sweeps -270° clockwise at 100%
+        extent = -(270 * (pct_remaining / 100))
         self.itemconfig(self.fg_arc, extent=extent)
-        self.itemconfig(self.pct_text, text=f"{int(pct_remaining)}%")
         
-        # Color-code percentage by remaining amount
-        if pct_remaining <= 20:
-            pct_color = "#FF5252"  # red — critical
-        elif pct_remaining <= 50:
-            pct_color = "#FDD835"  # yellow — warning
+        # ── Glow dot at the tip of the arc ────────────────────────────────
+        cx = (self.bbox[0] + self.bbox[2]) / 2
+        cy = (self.bbox[1] + self.bbox[3]) / 2
+        rx = (self.bbox[2] - self.bbox[0]) / 2
+        ry = (self.bbox[3] - self.bbox[1]) / 2
+        # Tip angle = start (225°) + extent (clockwise = negative)
+        angle_deg = 225 + extent  # Tkinter angle: CCW from 3-o'clock
+        angle_rad = math.radians(angle_deg)
+        tip_x = cx + rx * math.cos(angle_rad)
+        tip_y = cy - ry * math.sin(angle_rad)
+        r_outer = self.arc_width * 0.55
+        r_inner = self.arc_width * 0.22
+        if pct_remaining > 1:
+            self.coords(self.glow_outer, tip_x - r_outer, tip_y - r_outer, tip_x + r_outer, tip_y + r_outer)
+            self.coords(self.glow_inner, tip_x - r_inner, tip_y - r_inner, tip_x + r_inner, tip_y + r_inner)
+            self.itemconfig(self.glow_outer, state="normal")
+            self.itemconfig(self.glow_inner, state="normal")
         else:
-            pct_color = TEXT_FG    # normal white
+            self.itemconfig(self.glow_outer, state="hidden")
+            self.itemconfig(self.glow_inner, state="hidden")
+        
+        # ── Percentage text with glow color ───────────────────────────────
+        self.itemconfig(self.pct_text, text=f"{int(pct_remaining)}%")
+        if pct_remaining <= 20:
+            pct_color = "#FF5252"   # red — critical
+        elif pct_remaining <= 50:
+            pct_color = "#FDD835"   # yellow — warning
+        else:
+            pct_color = self.glow_color  # Use the arc's glow color (blue/amber)
         self.itemconfig(self.pct_text, fill=pct_color)
         
-        # Calculate remaining reset time
+        # ── Reset time text ────────────────────────────────────────────────
         time_str = reset_time
         if reset_time and "Z" in reset_time:
             try:
@@ -82,8 +115,8 @@ class ArcGauge(tk.Canvas):
         self.itemconfig(self.time_text, text=time_str)
 
 class HistoryChart(tk.Canvas):
-    def __init__(self, parent, width=300, height=80, **kwargs):
-        super().__init__(parent, width=width, height=height, bg=BG_COLOR, highlightthickness=0, **kwargs)
+    def __init__(self, parent, width=300, height=90, **kwargs):
+        super().__init__(parent, width=width, height=height, bg=SURFACE_COLOR, highlightthickness=0, **kwargs)
         self.width = width
         self.height = height
         
@@ -93,8 +126,9 @@ class HistoryChart(tk.Canvas):
             self.create_text(self.width/2, self.height/2, text="Waiting for data...", fill=TEXT_MUTED, font=("Segoe UI", 9))
             return
         
-        y_base = self.height - 20
-        self.create_line(10, y_base, self.width-10, y_base, fill=ARC_BG, dash=(2, 2))
+        y_base = self.height - 22
+        # Subtle horizontal grid line at base
+        self.create_line(10, y_base, self.width-10, y_base, fill="#2A2B2E", dash=(3, 4))
         
         # Parse and sort all history entries by timestamp
         parsed = []
@@ -145,7 +179,7 @@ class HistoryChart(tk.Canvas):
         # Both scale to their own local maximums, so they never crush each other.
         step_x = (self.width - 20) / NUM_BUCKETS
         mid_y = y_base - (y_base - 14) // 2
-        zone_h = (y_base - 14) // 2 - 2
+        zone_h = (y_base - 14) // 2 - 4
 
         gem_vals = [g for g, e in buckets]
         ext_vals = [e for g, e in buckets]
@@ -162,20 +196,20 @@ class HistoryChart(tk.Canvas):
             gem_pts.append((cx, mid_y + h_g))   # Gemini grows DOWN from center
             ext_pts.append((cx, mid_y - h_e))   # External grows UP from center
 
-        # Draw External area (Top half, growing UP)
+        # Draw External area (Top half, growing UP) — warm amber, semi-transparent fill
         poly_ext = [(10, mid_y)] + ext_pts + [(self.width - 10, mid_y)]
-        self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
+        self.create_polygon(poly_ext, fill="#3D2A0A", outline="")  # dark amber fill
         if len(ext_pts) > 1:
-            self.create_line(ext_pts, fill="#FFE082", width=1.5, smooth=True)
+            self.create_line(ext_pts, fill=COLOR_EXT_GLOW, width=1.5, smooth=True)
 
-        # Draw Gemini area (Bottom half, growing DOWN)
+        # Draw Gemini area (Bottom half, growing DOWN) — cool blue, semi-transparent fill
         poly_gem = [(10, mid_y)] + gem_pts + [(self.width - 10, mid_y)]
-        self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
+        self.create_polygon(poly_gem, fill="#0A1F30", outline="")  # dark blue fill
         if len(gem_pts) > 1:
-            self.create_line(gem_pts, fill="#81D4FA", width=1.5, smooth=True)
+            self.create_line(gem_pts, fill=COLOR_GEMINI_GLOW, width=1.5, smooth=True)
 
-        # Draw center baseline (Mirror axis)
-        self.create_line(10, mid_y, self.width - 10, mid_y, fill=ARC_BG, dash=(2, 2))
+        # Mirror axis — slightly brighter to be readable
+        self.create_line(10, mid_y, self.width - 10, mid_y, fill="#333639", dash=(3, 3))
 
 
 
@@ -242,28 +276,28 @@ class UsageWidget:
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Title bar (draggable)
-        self.header = tk.Frame(self.main_frame, bg="#2D2D2D", height=28)
+        self.header = tk.Frame(self.main_frame, bg=HEADER_COLOR, height=30)
         self.header.pack(fill=tk.X)
         self.header.pack_propagate(False)
         
-        title = tk.Label(self.header, text="AGY Fuel Gauge", bg="#2D2D2D", fg=TEXT_FG, font=("Segoe UI", 10, "bold"))
+        title = tk.Label(self.header, text="AGY Fuel Gauge", bg=HEADER_COLOR, fg=TEXT_FG, font=("Segoe UI", 10, "bold"))
         title.pack(side=tk.LEFT, padx=10, pady=5)
         title.bind("<ButtonPress-1>", self.start_move)
         title.bind("<B1-Motion>", self.do_move)
         
         # Refresh and close buttons
-        close_btn = tk.Label(self.header, text="✕", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 10), cursor="hand2")
+        close_btn = tk.Label(self.header, text="✕", bg=HEADER_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 10), cursor="hand2")
         close_btn.pack(side=tk.RIGHT, padx=10)
         close_btn.bind("<Button-1>", lambda e: self.hide_window())
         self._bind_hover(close_btn, TEXT_MUTED, "#FF5252")  # Red on hover for close
         
-        self.refresh_btn = tk.Label(self.header, text="↻", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 12), cursor="hand2")
+        self.refresh_btn = tk.Label(self.header, text="↻", bg=HEADER_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 12), cursor="hand2")
         self.refresh_btn.pack(side=tk.RIGHT, padx=5)
         self.refresh_btn.bind("<Button-1>", lambda e: self.trigger_refresh())
         self._bind_hover(self.refresh_btn, TEXT_MUTED, TEXT_FG)
         
         # Last updated timestamp (shown after first fetch)
-        self.last_updated_label = tk.Label(self.header, text="", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 7))
+        self.last_updated_label = tk.Label(self.header, text="", bg=HEADER_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 7))
         self.last_updated_label.pack(side=tk.RIGHT, padx=5)
         
         self.content = tk.Frame(self.main_frame, bg=BG_COLOR, padx=10, pady=5)
@@ -277,19 +311,19 @@ class UsageWidget:
         self.top_arcs_frame = tk.Frame(self.arcs_container, bg=BG_COLOR)
         self.top_arcs_frame.pack(fill=tk.X)
         
-        self.gemini_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="Gemini\n(5h)", color=COLOR_GEMINI)
+        self.gemini_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="Gemini\n(5h)",     color=COLOR_GEMINI,        glow_color=COLOR_GEMINI_GLOW)
         self.gemini_5h_gauge.pack(side=tk.LEFT, padx=5)
         
-        self.ext_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="External\n(5h)", color=COLOR_EXT)
+        self.ext_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="External\n(5h)",   color=COLOR_EXT,           glow_color=COLOR_EXT_GLOW)
         self.ext_5h_gauge.pack(side=tk.RIGHT, padx=5)
         
         # Bottom Arcs (Weekly limits) - Hidden by default
         self.weekly_arcs_frame = tk.Frame(self.arcs_container, bg=BG_COLOR)
         
-        self.gemini_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="Gemini\n(Weekly)", color=COLOR_GEMINI_WEEKLY)
+        self.gemini_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="Gemini\n(Weekly)", color=COLOR_GEMINI_WEEKLY, glow_color=COLOR_GEMINI_GLOW)
         self.gemini_w_gauge.pack(side=tk.LEFT, padx=5)
         
-        self.ext_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="External\n(Weekly)", color=COLOR_EXT_WEEKLY)
+        self.ext_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="External\n(Weekly)", color=COLOR_EXT_WEEKLY,    glow_color=COLOR_EXT_GLOW)
         self.ext_w_gauge.pack(side=tk.RIGHT, padx=5)
         
         # Segmented Control Toggle
@@ -297,26 +331,26 @@ class UsageWidget:
         self.toggle_frame.pack(pady=4)
         
         # Pill container
-        self.toggle_container = tk.Frame(self.toggle_frame, bg="#2A2B2E", padx=2, pady=2, bd=0)
+        self.toggle_container = tk.Frame(self.toggle_frame, bg="#1E1E1E", padx=2, pady=2, bd=0)
         self.toggle_container.pack()
 
         seg_font = ("Segoe UI", 8, "bold")
         
-        self.btn_5h = tk.Label(self.toggle_container, text=" 5-Hour ", font=seg_font, bg="#4A4D51", fg=TEXT_FG, cursor="hand2", padx=12, pady=2)
+        self.btn_5h = tk.Label(self.toggle_container, text=" 5-Hour ", font=seg_font, bg="#333639", fg=TEXT_FG, cursor="hand2", padx=12, pady=2)
         self.btn_5h.pack(side=tk.LEFT)
         self.btn_5h.bind("<Button-1>", lambda e: self.set_view(False))
         
-        self.btn_weekly = tk.Label(self.toggle_container, text=" Weekly ", font=seg_font, bg="#2A2B2E", fg=TEXT_MUTED, cursor="hand2", padx=12, pady=2)
+        self.btn_weekly = tk.Label(self.toggle_container, text=" Weekly ", font=seg_font, bg="#1E1E1E", fg=TEXT_MUTED, cursor="hand2", padx=12, pady=2)
         self.btn_weekly.pack(side=tk.LEFT)
         self.btn_weekly.bind("<Button-1>", lambda e: self.set_view(True))
         
         self.show_weekly = False
         
-        # History Chart Container (Clean modern border)
-        self.chart_frame = tk.Frame(self.content, bg="#2A2B2E", bd=0, highlightthickness=1, highlightbackground=ARC_BG, highlightcolor=ARC_BG)
+        # History Chart Container
+        self.chart_frame = tk.Frame(self.content, bg=SURFACE_COLOR, bd=0, highlightthickness=1, highlightbackground="#2A2B2E", highlightcolor="#2A2B2E")
         self.chart_frame.pack(fill=tk.X, pady=(8, 0), padx=5)
         
-        self.chart = HistoryChart(self.chart_frame, width=310, height=85)
+        self.chart = HistoryChart(self.chart_frame, width=310, height=95)
         self.chart.pack(padx=2, pady=2)
         
         # Render history chart immediately on boot using local file
@@ -348,13 +382,13 @@ class UsageWidget:
             
         self.show_weekly = show_weekly
         if self.show_weekly:
-            self.btn_5h.config(bg="#2A2B2E", fg=TEXT_MUTED)
-            self.btn_weekly.config(bg="#4A4D51", fg=TEXT_FG)
+            self.btn_5h.config(bg="#1E1E1E", fg=TEXT_MUTED)
+            self.btn_weekly.config(bg="#333639", fg=TEXT_FG)
             self.top_arcs_frame.pack_forget()
             self.weekly_arcs_frame.pack(fill=tk.X)
         else:
-            self.btn_weekly.config(bg="#2A2B2E", fg=TEXT_MUTED)
-            self.btn_5h.config(bg="#4A4D51", fg=TEXT_FG)
+            self.btn_weekly.config(bg="#1E1E1E", fg=TEXT_MUTED)
+            self.btn_5h.config(bg="#333639", fg=TEXT_FG)
             self.weekly_arcs_frame.pack_forget()
             self.top_arcs_frame.pack(fill=tk.X)
 
