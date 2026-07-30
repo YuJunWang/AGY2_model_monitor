@@ -136,36 +136,32 @@ class HistoryChart(tk.Canvas):
         total_burn = sum(g + e for g, e in buckets)
         hourly_burn = total_burn / 6.0
         
-        # ── Reference-style stacked bar chart ─────────────────────────────────────
-        # Matches Antigravity Toolkit UI: thin bars, Gemini (blue) at bottom,
-        # External (orange) stacked on top. Each bar = one 3-min bucket.
-        step_x    = (self.width - 20) / NUM_BUCKETS
-        bar_w     = max(1.5, step_x - 0.8)
-        chart_h   = y_base - 14   # drawable height (excluding top label area)
-        
+        # ── Smooth stacked area chart ("sand dune" style) ────────────────────────
+        step_x = (self.width - 20) / NUM_BUCKETS
+        chart_h = y_base - 14
+
+        gem_pts = []  # top edge of Gemini area
+        ext_pts = []  # top edge of total (Gemini + External) area
+
         for idx, (g, e) in enumerate(buckets):
-            if g == 0 and e == 0:
-                continue
-            
-            x_left = 10 + idx * step_x
+            cx = 10 + (idx + 0.5) * step_x
             h_g = (g / max_val) * chart_h
             h_e = (e / max_val) * chart_h
-            
-            # Gemini (blue) — drawn from baseline up
-            if h_g > 0.5:
-                self.create_rectangle(
-                    x_left, y_base - h_g,
-                    x_left + bar_w, y_base,
-                    fill=COLOR_GEMINI, outline=""
-                )
-            
-            # External (amber) — stacked on top of Gemini
-            if h_e > 0.5:
-                self.create_rectangle(
-                    x_left, y_base - h_g - h_e,
-                    x_left + bar_w, y_base - h_g,
-                    fill=COLOR_EXT, outline=""
-                )
+            gem_pts.append((cx, y_base - h_g))
+            ext_pts.append((cx, y_base - h_g - h_e))
+
+        # Draw External area first (total height, yellow/amber)
+        poly_ext = [(10, y_base)] + ext_pts + [(self.width - 10, y_base)]
+        self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
+
+        # Draw Gemini area on top (only Gemini height, blue) — covers the bottom of yellow
+        poly_gem = [(10, y_base)] + gem_pts + [(self.width - 10, y_base)]
+        self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
+
+        # Crisp top-edge line for Gemini
+        if len(gem_pts) > 1:
+            self.create_line(gem_pts, fill=COLOR_GEMINI, width=1.5, smooth=True)
+
 
         # ── Labels ────────────────────────────────────────────────────────────────
         self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
