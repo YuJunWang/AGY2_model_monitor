@@ -1,8 +1,8 @@
 ﻿# AGY Fuel Gauge 🚀
 
-AGY Fuel Gauge is a background telemetry widget built to track your AI quotas without breaking your flow state. 
+AGY Fuel Gauge is a background telemetry widget that keeps your AI quotas visible without pulling you out of your flow state.
 
-Instead of asking for your credentials or opening web browsers, we took a smarter, "white-hat" approach. Since Antigravity IDE already runs a local background daemon (`language_server.exe`) that handles your token usage, we decided to just eavesdrop on it. This widget hooks directly into that internal gRPC-Web API to give you an accurate, real-time look at your usage for both Gemini and External models. Zero auth, no manual token hunting—just install it, and it quietly fetches the data directly from the source.
+The trick is surprisingly simple: Antigravity IDE already runs a local background daemon (`language_server.exe`) that handles all your token traffic. We eavesdrop on it. This widget hooks directly into that internal gRPC-Web API, giving you an accurate, real-time view of your Gemini and External model usage—no credentials required, no config files to maintain.
 
 <p align="center">
   <img src="./assets/preview_5h.png" alt="5-Hour Quota View" width="45%" />
@@ -12,20 +12,20 @@ Instead of asking for your credentials or opening web browsers, we took a smarte
 
 ## ✨ How it actually works
 
-- **Zero Auth Setup**: The script automatically scans for your active `language_server.exe` process to dynamically find its listening Port, and simply rips the `x-codeium-csrf-token` straight from the startup logs. You never have to touch a config file or deal with logins.
-- **Custom UI**: We built a custom 270-degree arc gauge specifically optimized to look good on OLED black backgrounds. Plus, it calculates the exact time your quota will reset.
-- **Hourly Burn Rate**: To help you pace yourself, it saves a local snapshot every 3 minutes so it can calculate your exact `🔥 %/h` consumption speed.
+- **Zero Auth Setup**: The widget scans for your active `language_server.exe` process to dynamically locate its listening port, then reads the `x-codeium-csrf-token` straight from the startup logs. Nothing to configure.
+- **Custom UI**: A 270-degree arc gauge designed for OLED black backgrounds, with an exact quota reset countdown.
+- **Hourly Burn Rate**: Local snapshots every 3 minutes let it calculate your exact `🔥 %/h` consumption rate, so you can pace yourself.
 
 > [!NOTE]
-> **Why not use a standard line chart?**  
-> 1% of Gemini represents a massive amount of tokens compared to 1% of an external model. If we plotted them on the exact same Y-axis, the external line would just get flattened into a pancake and you wouldn't be able to read it.
-> 
-> **To solve this**, we built a Self-Normalized Mirrored Chart. Both datasets scale to their own local maximums. Gemini plots upwards, External plots downwards. This way, you get clear, side-by-side trends without the math getting in the way.
+> **Why not a standard line chart?**  
+> 1% of Gemini represents vastly more tokens than 1% of an external model. On a shared Y-axis, the external model line gets completely flattened—unreadable.
+>
+> **The fix**: a Self-Normalized Mirrored Chart. Each dataset scales to its own local maximum. Gemini plots upward, External plots downward. Two clear trends, zero interference.
 
 ## 💻 Compatibility
-- **Antigravity 2.0 (Desktop App)**: 100% supported (Run it as a Sidecar).
+- **Antigravity 2.0 (Desktop App)**: 100% supported — run it as a Sidecar.
 - **Antigravity IDE**: 100% supported.
-- **Antigravity CLI (`agy`)**: Not supported. The CLI doesn't spawn the persistent background server we need to hijack for data.
+- **Antigravity CLI (`agy`)**: Not supported. The CLI doesn't maintain the background server this widget taps into.
 
 ## 🛠️ Get Started
 
@@ -36,17 +36,17 @@ Instead of asking for your credentials or opening web browsers, we took a smarte
    ```
 
 2. **Install dependencies**
-   Make sure you have Python installed, then run:
+   Make sure Python is installed, then:
    ```bash
    pip install pystray Pillow
    ```
 
-3. **Set it up as a background daemon (Highly Recommended)**
-   While you could run this manually, it's highly recommended to let Antigravity manage the lifecycle of this widget via Sidecars.
-   
-   1. Open up your Antigravity config directory (usually around `C:\Users\<YourUsername>\.gemini\config\sidecars\`).
-   2. Create a new folder in there named `agy-fuel-gauge`.
-   3. Create a `sidecar.json` file inside with the following content (remember to update the `args` path to match where you cloned the repo):
+3. **Set it up as a background daemon (Recommended)**
+   The cleanest way to run this is via Antigravity's Sidecar mechanism, which handles auto-start and crash recovery automatically.
+
+   1. Open your Antigravity config directory (usually `C:\Users\<YourUsername>\.gemini\config\sidecars\`).
+   2. Create a new folder named `agy-fuel-gauge`.
+   3. Inside it, create a `sidecar.json` with the following content (update the `args` path to your clone location):
       ```json
       {
         "description": "AGY Fuel Gauge",
@@ -58,34 +58,32 @@ Instead of asking for your credentials or opening web browsers, we took a smarte
       }
       ```
 
-Once that's done, just restart your Antigravity IDE. You should see a little blue AGY icon pop up in your Windows system tray. (Closing the window just hides it in the tray while it keeps logging; right-click the tray icon to show it again).
+Restart your Antigravity IDE. A blue AGY icon should appear in your Windows system tray. (The `✕` button hides it to the tray and keeps logging in the background; right-click the icon to bring it back.)
 
 ---
 
-# AGY Fuel Gauge (中文說明) 🚀
+# AGY Fuel Gauge（中文說明）🚀
 
 寫程式時若要隨時關注 AI 額度，頻繁切換視窗往往會打斷心流，這正是 AGY Fuel Gauge 誕生的原因。
 
-市面上的 AI 額度監控工具大多採用「網頁爬蟲」，這不僅容易因為官方網頁改版而失效，還可能要求你交出敏感的帳號憑證。AGY Fuel Gauge 選擇了另一條路：**本地端白帽攔截**。
-
-既然 Antigravity IDE 已經在你的電腦裡跑了一支負責通訊的背景精靈 (`language_server.exe`)，我們何必捨近求遠？這支小工具會直接掛載在這個本機精靈的內部通道 (gRPC-Web) 上進行「旁聽」。我們徹底捨棄了脆弱的網頁爬蟲，你也不需要手動撈取 Token 憑證。安裝後，它就能在背景穩定運行，直接從最底層截取 Gemini 與外部模型的即時用量。
+做法其實很直觀：既然 Antigravity IDE 已經在你的電腦裡跑了一支負責通訊的背景精靈（`language_server.exe`），我們直接在它的內部通道（gRPC-Web）上「旁聽」就好。不需要你的帳號憑證，也不需要維護任何設定檔，安裝好就能在背景持續回報 Gemini 與外部模型的即時用量。
 
 ## ✨ 它是怎麼運作的？
 
-- **自動找 Port 與 Token**：這支程式會去系統裡找 `language_server.exe` 這個 Process 來定位目前本機端監聽的 Port，並從啟動日誌直接把 `x-codeium-csrf-token` 抽出來。這意味著你不需要去設定任何麻煩的設定檔。
-- **270 度弧形儀表板**：為了讓畫面看起來更有質感，我們寫了一個專門配對 OLED 黑底的 UI 介面，而且還會幫你算好下一次配額重新發放的精準時間。
-- **燃燒速率**：它每 3 分鐘會在背景存一次檔，藉此來算出你現在每小時消耗了多少額度 (`🔥 %/h`)，讓你可以稍微控制一下使用節奏。
+- **自動找 Port 與 Token**：程式會找到 `language_server.exe` 的進程來定位目前監聽的 Port，並從啟動日誌直接取出 `x-codeium-csrf-token`。你什麼都不用設定。
+- **270 度弧形儀表板**：專為 OLED 黑底設計的 UI，同時顯示配額重新發放的倒數時間。
+- **燃燒速率**：每 3 分鐘在背景存一次快照，藉此計算出你的 `🔥 %/h` 消耗速率，讓你可以調整使用節奏。
 
 > [!NOTE]
-> **為什麼不使用一般的折線圖？**  
-> 因為 Gemini 只要消耗 1%，背後跑的運算量就遠大於 Claude 等外部模型。如果我們硬把它們塞進同一個座標軸，外部模型的那條線絕對會被壓成平的，根本看不出趨勢。
+> **為什麼不用一般的折線圖？**  
+> Gemini 消耗 1% 的運算量，遠大於 Claude 等外部模型的 1%。如果強行畫在同一個 Y 軸上，外部模型的那條線會完全被壓平，根本看不出趨勢。
 >
-> **為了解決這個問題**，我們實作了自我正規化的「倒影圖 (Mirrored Area Chart)」。兩邊的數據會各自找出自己的最大值來當作天花板進行縮放，Gemini 往上長，外部模型往下長。這樣兩邊的趨勢清晰可見，也不會互相打架。
+> **解法**：自我正規化的倒影圖（Mirrored Area Chart）。兩邊各自以自己的最大值為上限縮放——Gemini 往上長，外部模型往下長。兩條趨勢線清晰可讀，互不干擾。
 
 ## 💻 支援環境
-- **Antigravity 2.0 (桌面版應用程式)**：100% 支援（強烈建議搭配 Sidecar 機制使用）。
+- **Antigravity 2.0（桌面版）**：100% 支援，建議搭配 Sidecar 機制使用。
 - **Antigravity IDE**：100% 支援。
-- **Antigravity CLI (`agy`)**：不支援。純指令列環境沒有常駐的背景服務可以讓我們抓取資料。
+- **Antigravity CLI（`agy`）**：不支援。指令列環境沒有這支工具需要旁聽的背景服務。
 
 ## 🛠️ 安裝方式
 
@@ -96,17 +94,17 @@ Once that's done, just restart your Antigravity IDE. You should see a little blu
    ```
 
 2. **裝好必備套件**
-   確認你有裝好 Python 之後，執行：
+   確認 Python 已安裝，接著執行：
    ```bash
    pip install pystray Pillow
    ```
 
-3. **掛載成系統守護進程 (強烈建議)**
-   雖然你可以手動執行它，但強烈建議讓 Antigravity 的 Sidecar 機制來自動管理這個工具。
-   
-   1. 打開你的 Antigravity 設定檔目錄（通常在 `C:\Users\<你的帳號>\.gemini\config\sidecars\`）。
+3. **掛載成背景守護進程（建議）**
+   透過 Antigravity 的 Sidecar 機制來管理，可以自動啟動與崩潰復原，省去手動執行的麻煩。
+
+   1. 打開 Antigravity 設定檔目錄（通常在 `C:\Users\<你的帳號>\.gemini\config\sidecars\`）。
    2. 在裡面建立一個叫做 `agy-fuel-gauge` 的新資料夾。
-   3. 接著新增一個 `sidecar.json` 檔案，貼上以下內容（記得把 `args` 裡面的路徑換成你實際 clone 的地方）：
+   3. 在資料夾內新增 `sidecar.json`，內容如下（記得把路徑換成你實際 clone 的位置）：
       ```json
       {
         "description": "AGY Fuel Gauge",
@@ -118,4 +116,4 @@ Once that's done, just restart your Antigravity IDE. You should see a little blu
       }
       ```
 
-設定好之後，只要重新啟動你的 Antigravity IDE，就可以檢查右下角 Windows 系統匣是不是出現藍色的 AGY 小圖示了！(按右上角的 `✕` 只是把它收進系統匣繼續背景記錄，對著圖示點右鍵就可以再次喚醒它)。
+重新啟動 Antigravity IDE 後，右下角的 Windows 系統匣應該就會出現藍色的 AGY 小圖示。按右上角的 `✕` 只是把它收進系統匣繼續背景記錄，對著圖示點右鍵就可以再次喚醒它。
