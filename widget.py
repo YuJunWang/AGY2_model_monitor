@@ -34,8 +34,8 @@ class ArcGauge(tk.Canvas):
         
         # Text elements
         self.pct_text = self.create_text(size/2, size/2 - 15, text="0%", fill=TEXT_FG, font=("Segoe UI", 18, "bold"))
-        self.time_text = self.create_text(size/2, size/2 + 5, text="--h --m", fill=TEXT_MUTED, font=("Segoe UI", 9))
-        self.title_text = self.create_text(size/2, size/2 + 25, text=title, fill=TEXT_FG, font=("Segoe UI", 9, "bold"))
+        self.time_text = self.create_text(size/2, size/2 + 7, text="--h --m", fill=TEXT_MUTED, font=("Segoe UI", 9))
+        self.title_text = self.create_text(size/2, size/2 + 32, text=title, fill=TEXT_FG, font=("Segoe UI", 9, "bold"), justify="center")
 
     def set_value(self, pct_remaining, reset_time):
         # pct_remaining is 0-100. We start at 180 (left) and sweep negative (clockwise)
@@ -200,19 +200,19 @@ class UsageWidget:
         self.top_arcs_frame = tk.Frame(self.arcs_container, bg=BG_COLOR)
         self.top_arcs_frame.pack(fill=tk.X)
         
-        self.gemini_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="Gemini (5h)", color=COLOR_GEMINI)
+        self.gemini_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="Gemini\n(5h)", color=COLOR_GEMINI)
         self.gemini_5h_gauge.pack(side=tk.LEFT, padx=5)
         
-        self.ext_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="External (5h)", color=COLOR_EXT)
+        self.ext_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="External\n(5h)", color=COLOR_EXT)
         self.ext_5h_gauge.pack(side=tk.RIGHT, padx=5)
         
         # Bottom Arcs (Weekly limits) - Hidden by default
         self.weekly_arcs_frame = tk.Frame(self.arcs_container, bg=BG_COLOR)
         
-        self.gemini_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="Gemini (Weekly)", color=COLOR_GEMINI_WEEKLY)
+        self.gemini_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="Gemini\n(Weekly)", color=COLOR_GEMINI_WEEKLY)
         self.gemini_w_gauge.pack(side=tk.LEFT, padx=5)
         
-        self.ext_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="External (Weekly)", color=COLOR_EXT_WEEKLY)
+        self.ext_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="External\n(Weekly)", color=COLOR_EXT_WEEKLY)
         self.ext_w_gauge.pack(side=tk.RIGHT, padx=5)
         
         # Collapsible Toggle
