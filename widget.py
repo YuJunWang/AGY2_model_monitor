@@ -136,9 +136,9 @@ class HistoryChart(tk.Canvas):
             poly_gem = [(self.width - 10, y_base)] + gem_points + [(curr_x + step_x, y_base)]
             self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
             
-            # Top line for sharpness
-            if len(ext_points) > 1:
-                self.create_line(ext_points, fill=COLOR_EXT, width=1.5, smooth=False)
+            # Top line for Gemini Area (sharpness)
+            if len(gem_points) > 1:
+                self.create_line(gem_points, fill=COLOR_GEMINI, width=1.5, smooth=False)
             
         # Stats text
         avg_burn = sum([g+e for g,e in display_deltas]) / len(display_deltas)
