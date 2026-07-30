@@ -136,31 +136,43 @@ class HistoryChart(tk.Canvas):
         total_burn = sum(g + e for g, e in buckets)
         hourly_burn = total_burn / 6.0
         
-        # ── Smooth stacked area chart ("sand dune" style) ────────────────────────
+        # ── Mirrored Area Chart (Self-Normalized Waveform) ────────────────────────
+        # External grows UP from the middle. Gemini grows DOWN from the middle.
+        # Both scale to their own local maximums, so they never crush each other.
         step_x = (self.width - 20) / NUM_BUCKETS
-        chart_h = y_base - 14
+        mid_y = y_base - (y_base - 14) // 2
+        zone_h = (y_base - 14) // 2 - 2
 
-        gem_pts = []  # top edge of Gemini area
-        ext_pts = []  # top edge of total (Gemini + External) area
+        gem_vals = [g for g, e in buckets]
+        ext_vals = [e for g, e in buckets]
+        gem_max = max(gem_vals) if any(v > 0 for v in gem_vals) else 1
+        ext_max = max(ext_vals) if any(v > 0 for v in ext_vals) else 1
+
+        gem_pts = []
+        ext_pts = []
 
         for idx, (g, e) in enumerate(buckets):
             cx = 10 + (idx + 0.5) * step_x
-            h_g = (g / max_val) * chart_h
-            h_e = (e / max_val) * chart_h
-            gem_pts.append((cx, y_base - h_g))
-            ext_pts.append((cx, y_base - h_g - h_e))
+            h_g = (g / gem_max) * zone_h
+            h_e = (e / ext_max) * zone_h
+            gem_pts.append((cx, mid_y + h_g))   # Gemini grows DOWN from center
+            ext_pts.append((cx, mid_y - h_e))   # External grows UP from center
 
-        # Draw External area first (total height, yellow/amber)
-        poly_ext = [(10, y_base)] + ext_pts + [(self.width - 10, y_base)]
+        # Draw External area (Top half, growing UP)
+        poly_ext = [(10, mid_y)] + ext_pts + [(self.width - 10, mid_y)]
         self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
+        if len(ext_pts) > 1:
+            self.create_line(ext_pts, fill="#FFE082", width=1.5, smooth=True)
 
-        # Draw Gemini area on top (only Gemini height, blue) — covers the bottom of yellow
-        poly_gem = [(10, y_base)] + gem_pts + [(self.width - 10, y_base)]
+        # Draw Gemini area (Bottom half, growing DOWN)
+        poly_gem = [(10, mid_y)] + gem_pts + [(self.width - 10, mid_y)]
         self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
-
-        # Crisp top-edge line for Gemini
         if len(gem_pts) > 1:
-            self.create_line(gem_pts, fill=COLOR_GEMINI, width=1.5, smooth=True)
+            self.create_line(gem_pts, fill="#81D4FA", width=1.5, smooth=True)
+
+        # Draw center baseline (Mirror axis)
+        self.create_line(10, mid_y, self.width - 10, mid_y, fill=ARC_BG, dash=(2, 2))
+
 
 
         # ── Labels ────────────────────────────────────────────────────────────────
