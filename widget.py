@@ -483,8 +483,9 @@ class UsageWidget:
             self.trigger_refresh()
 
     def run(self):
-        self.trigger_refresh()
+        self.show_window()   # Always appear immediately on startup
         self.root.mainloop()
+
 
 if __name__ == "__main__":
     app = UsageWidget()
