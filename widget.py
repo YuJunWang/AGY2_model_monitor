@@ -3,9 +3,17 @@ import sys
 import threading
 import time
 import tkinter as tk
+import ctypes
+import sys
 from datetime import datetime, timedelta
 import pystray
 from PIL import Image, ImageDraw
+
+# ── Single Instance Lock ───────────────────────────────────────────────────
+mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "Global\\AGY_Fuel_Gauge_Mutex")
+if ctypes.windll.kernel32.GetLastError() == 183: # ERROR_ALREADY_EXISTS
+    sys.exit(0)
+
 import data_fetcher
 import history_logger
 
