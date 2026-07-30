@@ -74,6 +74,15 @@ class QuotaFetcher:
 
         def on_open(ws):
             ws.send(json.dumps({"id": 1, "method": "Network.enable"}))
+            # Safety timeout: Close websocket after 5 seconds if no token is found
+            def timeout_close():
+                import time
+                time.sleep(5)
+                try:
+                    ws.close()
+                except Exception:
+                    pass
+            threading.Thread(target=timeout_close, daemon=True).start()
 
         ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message)
         ws.run_forever(suppress_origin=True)

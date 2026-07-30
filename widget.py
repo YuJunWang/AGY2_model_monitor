@@ -306,6 +306,10 @@ class UsageWidget:
         self.chart = HistoryChart(self.chart_frame, width=310, height=85)
         self.chart.pack(padx=2, pady=2)
         
+        # Render history chart immediately on boot using local file
+        history = history_logger.get_history(minutes=360)
+        self.chart.render(history)
+        
         # Fixed height
         self.root.geometry(f"{self.width}x{self.base_height}")
 
