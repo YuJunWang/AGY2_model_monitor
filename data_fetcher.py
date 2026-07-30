@@ -145,6 +145,12 @@ def fetch_usage_data():
                     result["external"]["weekly_used"] = used_pct
                     result["external"]["reset_time_weekly"] = reset
                     
+    # Log to history
+    import history_logger
+    gem_5h = result["gemini"].get("5hr_percent", 100)
+    ext_5h = result["external"].get("5hr_percent", 100)
+    history_logger.log_usage(gem_5h, ext_5h)
+                    
     return result
 
 if __name__ == "__main__":

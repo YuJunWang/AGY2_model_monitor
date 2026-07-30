@@ -3,47 +3,161 @@ import sys
 import threading
 import time
 import tkinter as tk
-from tkinter import ttk
+from datetime import datetime, timedelta
 import pystray
 from PIL import Image, ImageDraw
 import data_fetcher
+import history_logger
+
+BG_COLOR = "#202124" # Dark theme background
+ARC_BG = "#3C4043"
+TEXT_FG = "#E8EAED"
+TEXT_MUTED = "#9AA0A6"
+COLOR_GEMINI = "#4FC3F7"
+COLOR_GEMINI_WEEKLY = "#69F0AE"
+COLOR_EXT = "#FFB74D"
+COLOR_EXT_WEEKLY = "#FF5252"
+
+class ArcGauge(tk.Canvas):
+    def __init__(self, parent, size=140, title="Title", color="#4FC3F7", **kwargs):
+        super().__init__(parent, width=size, height=size, bg=BG_COLOR, highlightthickness=0, **kwargs)
+        self.size = size
+        self.color = color
+        self.arc_width = size * 0.12
+        pad = self.arc_width + 5
+        self.bbox = (pad, pad, size - pad, size - pad)
+        
+        # bg arc
+        self.create_arc(*self.bbox, start=0, extent=180, style=tk.ARC, width=self.arc_width, outline=ARC_BG)
+        # fg arc (dynamically updated)
+        self.fg_arc = self.create_arc(*self.bbox, start=180, extent=0, style=tk.ARC, width=self.arc_width, outline=self.color)
+        
+        # Text elements
+        self.pct_text = self.create_text(size/2, size/2 - 15, text="0%", fill=TEXT_FG, font=("Segoe UI", 18, "bold"))
+        self.time_text = self.create_text(size/2, size/2 + 5, text="--h --m", fill=TEXT_MUTED, font=("Segoe UI", 9))
+        self.title_text = self.create_text(size/2, size/2 + 25, text=title, fill=TEXT_FG, font=("Segoe UI", 9, "bold"))
+
+    def set_value(self, pct_remaining, reset_time):
+        # pct_remaining is 0-100. We start at 180 (left) and sweep negative (clockwise)
+        extent = -(180 * (pct_remaining / 100))
+        self.itemconfig(self.fg_arc, extent=extent)
+        self.itemconfig(self.pct_text, text=f"{int(pct_remaining)}%")
+        
+        # calculate remaining time text
+        time_str = reset_time
+        if reset_time and "/" in reset_time:
+            try:
+                # "07/30 08:38"
+                current_year = datetime.now().year
+                dt = datetime.strptime(f"{current_year}/{reset_time}", "%Y/%m/%d %H:%M")
+                if dt < datetime.now():
+                    dt = dt + timedelta(days=1)
+                delta = dt - datetime.now()
+                hours, remainder = divmod(delta.seconds, 3600)
+                minutes = remainder // 60
+                days = delta.days
+                if days > 0:
+                    time_str = f"{days}d {hours}h"
+                else:
+                    time_str = f"{hours}h {minutes}m"
+            except:
+                pass
+        self.itemconfig(self.time_text, text=time_str)
+
+class HistoryChart(tk.Canvas):
+    def __init__(self, parent, width=300, height=80, **kwargs):
+        super().__init__(parent, width=width, height=height, bg=BG_COLOR, highlightthickness=0, **kwargs)
+        self.width = width
+        self.height = height
+        
+    def render(self, history):
+        self.delete("all")
+        if not history or len(history) < 2:
+            self.create_text(self.width/2, self.height/2, text="等待數據收集中...", fill=TEXT_MUTED, font=("Segoe UI", 9))
+            return
+            
+        # Draw dotted baseline
+        y_base = self.height - 20
+        self.create_line(10, y_base, self.width-10, y_base, fill=ARC_BG, dash=(2, 2))
+        
+        # Calculate deltas (burn rate per minute)
+        deltas = []
+        for i in range(1, len(history)):
+            prev = history[i-1]
+            curr = history[i]
+            # usage = prev - curr (since it's remaining %)
+            gem_burn = prev.get("gemini_5h", 100) - curr.get("gemini_5h", 100)
+            ext_burn = prev.get("external_5h", 100) - curr.get("external_5h", 100)
+            # prevent negative if resets
+            gem_burn = max(0, gem_burn)
+            ext_burn = max(0, ext_burn)
+            deltas.append((gem_burn, ext_burn))
+            
+        if not deltas:
+            return
+            
+        max_burn = max([g+e for g,e in deltas]) if deltas else 0
+        if max_burn == 0:
+            max_burn = 1 # avoid div by zero
+            
+        # Draw bars
+        bar_w = 4
+        spacing = 2
+        total_bars = len(deltas)
+        max_bars = int((self.width - 20) / (bar_w + spacing))
+        
+        display_deltas = deltas[-max_bars:]
+        
+        start_x = 10
+        for g, e in display_deltas:
+            h_g = (g / max_burn) * (self.height - 30)
+            h_e = (e / max_burn) * (self.height - 30)
+            
+            # draw stacked bar (gemini on bottom, ext on top)
+            if g > 0:
+                self.create_rectangle(start_x, y_base - h_g, start_x + bar_w, y_base, fill=COLOR_GEMINI, outline="")
+            if e > 0:
+                self.create_rectangle(start_x, y_base - h_g - h_e, start_x + bar_w, y_base - h_g, fill=COLOR_EXT, outline="")
+            
+            # minimal dots for zero burn
+            if g == 0 and e == 0:
+                self.create_rectangle(start_x, y_base-2, start_x + bar_w, y_base, fill=ARC_BG, outline="")
+                
+            start_x += bar_w + spacing
+            
+        # Stats text
+        avg_burn = sum([g+e for g,e in display_deltas]) / len(display_deltas)
+        hourly_burn = avg_burn * 60 / 3 # assuming 3 min intervals
+        
+        # Usage history title
+        self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
+        self.create_text(self.width-10, 10, text=f"max: {round(max_burn, 1)}%", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="e")
+        
+        self.create_text(10, self.height-5, text=f"Last {len(display_deltas)*3} min", fill=TEXT_MUTED, font=("Segoe UI", 8), anchor="w")
+        
+        status_color = "#FF5252" if hourly_burn > 20 else ("#FFB74D" if hourly_burn > 10 else TEXT_MUTED)
+        self.create_text(self.width-10, self.height-5, text=f"🔥 {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 8), anchor="e")
 
 class UsageWidget:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("AGY Monitor")
-        
-        # UI Styling (Dark mode flat design)
-        self.bg_color = "#1E1E1E"
-        self.fg_color = "#E0E0E0"
-        self.accent_color = "#4FC3F7"
-        self.warning_color = "#FF5252"
-        
-        self.root.configure(bg=self.bg_color)
+        self.root.configure(bg=BG_COLOR)
         self.root.attributes('-topmost', True)
-        self.root.overrideredirect(True) # Borderless window
-        self.root.withdraw() # Hide initially
+        self.root.overrideredirect(True)
+        self.root.withdraw()
         
-        # Set window size
-        self.width = 280
-        self.base_height = 140
-        self.expanded_height = 280
-        self.root.geometry(f"{self.width}x{self.base_height}")
-        
+        self.width = 340
         self.build_ui()
         self.setup_tray()
         
-        # State
-        self.show_details = tk.BooleanVar(value=False)
         self.is_fetching = False
-        
-        # Start update loop (3 minutes = 180 seconds)
         self.update_thread = threading.Thread(target=self.auto_update_loop, daemon=True)
         self.update_thread.start()
 
     def build_ui(self):
-        # Main Frame
-        self.main_frame = tk.Frame(self.root, bg=self.bg_color, highlightbackground="#333333", highlightthickness=1)
+        # Main Frame with border
+        self.main_frame = tk.Frame(self.root, bg=BG_COLOR, highlightbackground="#444444", highlightthickness=1)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Header (Draggable)
@@ -52,61 +166,60 @@ class UsageWidget:
         self.header.bind("<ButtonPress-1>", self.start_move)
         self.header.bind("<B1-Motion>", self.do_move)
         
-        title = tk.Label(self.header, text="AGY Model Monitor", bg="#2D2D2D", fg=self.fg_color, font=("Segoe UI", 9, "bold"))
+        title = tk.Label(self.header, text="Antigravity: Toolkit", bg="#2D2D2D", fg=TEXT_FG, font=("Segoe UI", 9, "bold"))
         title.pack(side=tk.LEFT, padx=10, pady=5)
         title.bind("<ButtonPress-1>", self.start_move)
         title.bind("<B1-Motion>", self.do_move)
         
-        close_btn = tk.Label(self.header, text="X", bg="#2D2D2D", fg="#888888", font=("Segoe UI", 9, "bold"), cursor="hand2")
+        # Refresh and close
+        close_btn = tk.Label(self.header, text="X", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 9, "bold"), cursor="hand2")
         close_btn.pack(side=tk.RIGHT, padx=10)
         close_btn.bind("<Button-1>", lambda e: self.hide_window())
-        close_btn.bind("<Enter>", lambda e: close_btn.config(fg="white"))
-        close_btn.bind("<Leave>", lambda e: close_btn.config(fg="#888888"))
         
-        # Content Frame
-        self.content = tk.Frame(self.main_frame, bg=self.bg_color, padx=15, pady=10)
+        refresh_btn = tk.Label(self.header, text="↻", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 12), cursor="hand2")
+        refresh_btn.pack(side=tk.RIGHT, padx=5)
+        refresh_btn.bind("<Button-1>", lambda e: self.trigger_refresh())
+        
+        self.content = tk.Frame(self.main_frame, bg=BG_COLOR, padx=10, pady=10)
         self.content.pack(fill=tk.BOTH, expand=True)
         
-        # Gemini 5hr (Primary)
-        tk.Label(self.content, text="Gemini (5 小時用量)", bg=self.bg_color, fg="#AAAAAA", font=("Segoe UI", 9)).pack(anchor="w")
+        # Top Arcs (5hr limits)
+        self.top_arcs_frame = tk.Frame(self.content, bg=BG_COLOR)
+        self.top_arcs_frame.pack(fill=tk.X)
         
-        self.gemini_pct_lbl = tk.Label(self.content, text="--%", bg=self.bg_color, fg=self.accent_color, font=("Segoe UI", 24, "bold"))
-        self.gemini_pct_lbl.pack(anchor="w", pady=(0, 2))
+        self.gemini_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="Gemini (5h)", color=COLOR_GEMINI)
+        self.gemini_5h_gauge.pack(side=tk.LEFT, padx=5)
         
-        self.gemini_text_lbl = tk.Label(self.content, text="-- / --", bg=self.bg_color, fg=self.fg_color, font=("Segoe UI", 10))
-        self.gemini_text_lbl.pack(anchor="w")
+        self.ext_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="External (5h)", color=COLOR_EXT)
+        self.ext_5h_gauge.pack(side=tk.RIGHT, padx=5)
         
-        # Details checkbutton
-        self.cb_details = tk.Checkbutton(self.content, text="顯示詳細資訊 (外部模型/每週)", bg=self.bg_color, fg="#888888", 
-                                         selectcolor=self.bg_color, activebackground=self.bg_color, activeforeground="white",
-                                         command=self.toggle_details, font=("Segoe UI", 8))
-        self.cb_details.pack(anchor="w", pady=(10, 0))
+        # Collapsible Toggle
+        self.toggle_btn = tk.Label(self.content, text="▼ 詳細週用量", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 8), cursor="hand2")
+        self.toggle_btn.pack(pady=5)
+        self.toggle_btn.bind("<Button-1>", self.toggle_weekly)
+        self.show_weekly = False
         
-        # Expanded Frame (Hidden initially)
-        self.expanded_frame = tk.Frame(self.content, bg=self.bg_color)
+        # Bottom Arcs (Weekly limits) - Hidden by default
+        self.weekly_arcs_frame = tk.Frame(self.content, bg=BG_COLOR)
         
-        # External 5hr
-        tk.Label(self.expanded_frame, text="外部模型 (5 小時用量)", bg=self.bg_color, fg="#AAAAAA", font=("Segoe UI", 8)).pack(anchor="w", pady=(5, 0))
-        self.ext_lbl = tk.Label(self.expanded_frame, text="-- / -- (--%)", bg=self.bg_color, fg=self.fg_color, font=("Segoe UI", 9))
-        self.ext_lbl.pack(anchor="w")
+        self.gemini_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="Gemini (Weekly)", color=COLOR_GEMINI_WEEKLY)
+        self.gemini_w_gauge.pack(side=tk.LEFT, padx=5)
         
-        # Gemini Weekly
-        tk.Label(self.expanded_frame, text="Gemini (每週用量)", bg=self.bg_color, fg="#AAAAAA", font=("Segoe UI", 8)).pack(anchor="w", pady=(5, 0))
-        self.gemini_weekly_lbl = tk.Label(self.expanded_frame, text="-- / -- (--%)", bg=self.bg_color, fg=self.fg_color, font=("Segoe UI", 9))
-        self.gemini_weekly_lbl.pack(anchor="w")
+        self.ext_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="External (Weekly)", color=COLOR_EXT_WEEKLY)
+        self.ext_w_gauge.pack(side=tk.RIGHT, padx=5)
         
-        # Footer Frame
-        self.footer = tk.Frame(self.main_frame, bg="#181818", height=30)
-        self.footer.pack(fill=tk.X, side=tk.BOTTOM)
+        # History Chart
+        self.chart_frame = tk.Frame(self.content, bg="#2A2B2E", bd=1, relief="solid")
+        self.chart_frame.pack(fill=tk.X, pady=(10, 0), padx=5)
         
-        self.time_lbl = tk.Label(self.footer, text="上次更新: ---", bg="#181818", fg="#777777", font=("Segoe UI", 8))
-        self.time_lbl.pack(side=tk.LEFT, padx=10, pady=5)
+        self.chart = HistoryChart(self.chart_frame, width=310, height=90)
+        self.chart.pack(padx=5, pady=5)
         
-        refresh_lbl = tk.Label(self.footer, text="重新整理", bg="#181818", fg=self.accent_color, font=("Segoe UI", 8, "underline"), cursor="hand2")
-        refresh_lbl.pack(side=tk.RIGHT, padx=10, pady=5)
-        refresh_lbl.bind("<Button-1>", lambda e: self.trigger_refresh())
+        # Adjust height
+        self.base_height = 320
+        self.expanded_height = 470
+        self.root.geometry(f"{self.width}x{self.base_height}")
 
-    # Window Dragging Logic
     def start_move(self, event):
         self.x = event.x
         self.y = event.y
@@ -118,28 +231,24 @@ class UsageWidget:
         y = self.root.winfo_y() + deltay
         self.root.geometry(f"+{x}+{y}")
 
-    def toggle_details(self):
-        if self.show_details.get():
-            self.show_details.set(False)
-            self.cb_details.select()
+    def toggle_weekly(self, event=None):
+        self.show_weekly = not self.show_weekly
+        if self.show_weekly:
+            self.toggle_btn.config(text="▲ 隱藏週用量")
+            self.weekly_arcs_frame.pack(fill=tk.X, before=self.chart_frame)
             self.root.geometry(f"{self.width}x{self.expanded_height}")
-            self.expanded_frame.pack(fill=tk.BOTH, expand=True, before=self.cb_details)
-            self.cb_details.pack_forget()
-            self.cb_details.pack(anchor="w", pady=(10, 0))
         else:
-            self.show_details.set(True)
-            self.cb_details.deselect()
-            self.expanded_frame.pack_forget()
+            self.toggle_btn.config(text="▼ 詳細週用量")
+            self.weekly_arcs_frame.pack_forget()
             self.root.geometry(f"{self.width}x{self.base_height}")
 
     def create_tray_icon(self):
-        # Create a simple icon with a blue circle
         width = 64
         height = 64
         image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
         dc = ImageDraw.Draw(image)
-        dc.ellipse([8, 8, 56, 56], fill="#4FC3F7")
-        dc.text((22, 22), "AGY", fill="black") # Requires a font to look good, but fine for basic
+        dc.ellipse([8, 8, 56, 56], fill=COLOR_GEMINI)
+        dc.text((22, 22), "AGY", fill="black")
         return image
 
     def setup_tray(self):
@@ -148,16 +257,16 @@ class UsageWidget:
             pystray.MenuItem('Refresh Now', self.trigger_refresh),
             pystray.MenuItem('Exit', self.exit_app)
         )
-        self.icon = pystray.Icon("AGYMonitor", self.create_tray_icon(), "AGY Model Monitor", menu)
+        self.icon = pystray.Icon("AGYMonitor", self.create_tray_icon(), "AGY Toolkit", menu)
         threading.Thread(target=self.icon.run, daemon=True).start()
 
     def show_window(self, icon=None, item=None):
         self.root.deiconify()
-        # Position at bottom right, slightly above taskbar
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
+        current_h = self.expanded_height if self.show_weekly else self.base_height
         x = screen_width - self.width - 20
-        y = screen_height - (self.expanded_height if not self.show_details.get() else self.base_height) - 60
+        y = screen_height - current_h - 60
         self.root.geometry(f"+{x}+{y}")
         self.root.lift()
 
@@ -171,7 +280,6 @@ class UsageWidget:
         
     def trigger_refresh(self):
         if not self.is_fetching:
-            self.time_lbl.config(text="更新中...")
             threading.Thread(target=self.fetch_and_update, daemon=True).start()
             
     def fetch_and_update(self):
@@ -180,7 +288,7 @@ class UsageWidget:
             data = data_fetcher.fetch_usage_data()
             self.root.after(0, self.update_ui_with_data, data)
         except Exception as e:
-            self.root.after(0, lambda: self.time_lbl.config(text=f"錯誤: {str(e)[:15]}"))
+            pass # Silently fail and wait for next tick
         finally:
             self.is_fetching = False
             
@@ -188,16 +296,15 @@ class UsageWidget:
         g = data.get("gemini", {})
         e = data.get("external", {})
         
-        # Color based on remaining usage (Red if < 10%)
-        g_color = self.warning_color if g.get("5hr_percent", 100) < 10 else self.accent_color
+        self.gemini_5h_gauge.set_value(g.get("5hr_percent", 0), g.get("reset_time_5h", "--"))
+        self.ext_5h_gauge.set_value(e.get("5hr_percent", 0), e.get("reset_time_5h", "--"))
         
-        self.gemini_pct_lbl.config(text=f"{g.get('5hr_percent', 0)}%", fg=g_color)
-        self.gemini_text_lbl.config(text=f"重置時間: {g.get('reset_time_5h', '--')}")
+        self.gemini_w_gauge.set_value(g.get("weekly_percent", 0), g.get("reset_time_weekly", "--"))
+        self.ext_w_gauge.set_value(e.get("weekly_percent", 0), e.get("reset_time_weekly", "--"))
         
-        self.ext_lbl.config(text=f"剩餘: {e.get('5hr_percent', 0)}% (重置: {e.get('reset_time_5h', '--')})")
-        self.gemini_weekly_lbl.config(text=f"剩餘: {g.get('weekly_percent', 0)}% (重置: {g.get('reset_time_weekly', '--')})")
-        
-        self.time_lbl.config(text=f"上次更新: {data.get('last_updated', '--')}")
+        # Render history
+        history = history_logger.get_history(minutes=180) # Last 3 hours
+        self.chart.render(history)
 
     def auto_update_loop(self):
         while True:
