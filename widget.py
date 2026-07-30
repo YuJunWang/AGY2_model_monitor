@@ -14,9 +14,9 @@ ARC_BG = "#3C4043"
 TEXT_FG = "#E8EAED"
 TEXT_MUTED = "#9AA0A6"
 COLOR_GEMINI = "#4FC3F7"
-COLOR_GEMINI_WEEKLY = "#4FC3F7" # Same color family
+COLOR_GEMINI_WEEKLY = "#0D8ABF" # Darker blue for Weekly
 COLOR_EXT = "#FFB74D"
-COLOR_EXT_WEEKLY = "#FFB74D" # Same color family
+COLOR_EXT_WEEKLY = "#C97E1E" # Darker orange for Weekly
 
 class ArcGauge(tk.Canvas):
     def __init__(self, parent, size=140, title="Title", color="#4FC3F7", **kwargs):
@@ -81,77 +81,76 @@ class HistoryChart(tk.Canvas):
         y_base = self.height - 20
         self.create_line(10, y_base, self.width-10, y_base, fill=ARC_BG, dash=(2, 2))
         
-        # Calculate deltas (burn rate per minute)
-        deltas = []
+        # Calculate deltas using ACTUAL timestamps for accuracy
+        deltas = []  # (gem_burn, ext_burn, interval_minutes)
         for i in range(1, len(history)):
             prev = history[i-1]
             curr = history[i]
-            # usage = prev - curr (since it's remaining %)
-            gem_burn = prev.get("gemini_5h", 100) - curr.get("gemini_5h", 100)
-            ext_burn = prev.get("external_5h", 100) - curr.get("external_5h", 100)
-            # prevent negative if resets
-            gem_burn = max(0, gem_burn)
-            ext_burn = max(0, ext_burn)
-            deltas.append((gem_burn, ext_burn))
+            gem_burn = max(0, prev.get("gemini_5h", 100) - curr.get("gemini_5h", 100))
+            ext_burn = max(0, prev.get("external_5h", 100) - curr.get("external_5h", 100))
+            # Compute actual time gap between records (handles sleep/gaps correctly)
+            try:
+                t_prev = datetime.fromisoformat(prev["timestamp"])
+                t_curr = datetime.fromisoformat(curr["timestamp"])
+                interval_min = max(1, (t_curr - t_prev).total_seconds() / 60)
+            except Exception:
+                interval_min = 3  # fallback to assumed interval
+            deltas.append((gem_burn, ext_burn, interval_min))
             
         if not deltas:
             return
+
+        # Compute time-accurate hourly burn rate BEFORE slicing for display
+        total_burn = sum(g + e for g, e, _ in deltas)
+        total_min = sum(t for _, _, t in deltas)
+        hourly_burn = (total_burn / total_min) * 60 if total_min > 0 else 0
+
+        # Simplify to (g, e) tuples for drawing
+        simple_deltas = [(g, e) for g, e, _ in deltas]
             
-        max_burn = max([g+e for g,e in deltas]) if deltas else 0
+        max_burn = max(g + e for g, e in simple_deltas) if simple_deltas else 1
         if max_burn == 0:
-            max_burn = 1 # avoid div by zero
+            max_burn = 1  # avoid div by zero
             
-        # Area chart settings - exactly 6 hours (120 points of 3-min intervals)
+        # Area chart — exactly 6 hours (120 × 3-min points), right-anchored
         max_points = 120
         step_x = (self.width - 20) / max_points
-        display_deltas = deltas[-max_points:]
-        display_deltas.reverse() # start from newest
+        display_deltas = simple_deltas[-max_points:]
+        display_deltas.reverse()  # newest → leftmost in iteration, drawn right-to-left
         
         gem_points = []
         ext_points = []
-        
         curr_x = self.width - 10
         
         for g, e in display_deltas:
             h_g = (g / max_burn) * (self.height - 30)
             h_e = (e / max_burn) * (self.height - 30)
-            
             gem_points.append((curr_x, y_base - h_g))
             ext_points.append((curr_x, y_base - h_g - h_e))
-            
             curr_x -= step_x
             
         if len(gem_points) == 1:
-            # Duplicate the single point so polygon renders correctly
+            # Need ≥2 points for polygon; duplicate the single point
             gem_points.append((curr_x, gem_points[0][1]))
             ext_points.append((curr_x, ext_points[0][1]))
             curr_x -= step_x
             
         if gem_points:
-            # Draw External (Total) Area
+            # External area (drawn first, underneath Gemini)
             poly_ext = [(self.width - 10, y_base)] + ext_points + [(curr_x + step_x, y_base)]
             self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
-            
-            # Draw Gemini Area
+            # Gemini area
             poly_gem = [(self.width - 10, y_base)] + gem_points + [(curr_x + step_x, y_base)]
             self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
-            
-            # Top line for Gemini Area (sharpness)
+            # Crisp top-edge line for Gemini
             if len(gem_points) > 1:
                 self.create_line(gem_points, fill=COLOR_GEMINI, width=1.5, smooth=False)
             
-        # Stats text
-        avg_burn = sum([g+e for g,e in display_deltas]) / len(display_deltas)
-        hourly_burn = avg_burn * 60 / 3 # assuming 3 min intervals
-        
-        # Usage history title
+        # Labels
         self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
         self.create_text(self.width-10, 10, text=f"max: {round(max_burn, 1)}%", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="e")
-        
-        # Display 6h span text instead of dynamic min
         self.create_text(10, self.height-5, text="Last 6 Hours", fill=TEXT_MUTED, font=("Segoe UI", 8), anchor="w")
         
-        # Avoid yellow/orange conflict. Use #E57373 (soft red) for medium warning, #FF5252 (bright red) for high warning.
         status_color = "#FF5252" if hourly_burn > 20 else ("#E57373" if hourly_burn > 10 else TEXT_MUTED)
         self.create_text(self.width-10, self.height-5, text=f"🔥 {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 8), anchor="e")
 
@@ -271,11 +270,10 @@ class UsageWidget:
 
     def create_tray_icon(self):
         try:
-            # Try to load the newly generated icon image
-            import os
+            # os is already imported at the top of the module
             icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.jpg")
             return Image.open(icon_path)
-        except:
+        except Exception:
             # Fallback to drawn icon if file is missing
             width = 64
             height = 64
@@ -303,6 +301,8 @@ class UsageWidget:
         y = screen_height - current_h - 60
         self.root.geometry(f"+{x}+{y}")
         self.root.lift()
+        # Always show fresh data when user opens the widget
+        self.trigger_refresh()
 
     def hide_window(self):
         self.root.withdraw()
@@ -322,7 +322,7 @@ class UsageWidget:
             data = data_fetcher.fetch_usage_data()
             self.root.after(0, self.update_ui_with_data, data)
         except Exception as e:
-            pass # Silently fail and wait for next tick
+            print(f"[AGY Fuel Gauge] Fetch failed: {e}")
         finally:
             self.is_fetching = False
             
@@ -337,7 +337,7 @@ class UsageWidget:
         self.ext_w_gauge.set_value(e.get("weekly_percent", 0), e.get("reset_time_weekly", "--"))
         
         # Render history
-        history = history_logger.get_history(minutes=180) # Last 3 hours
+        history = history_logger.get_history(minutes=360)  # Last 6 hours
         self.chart.render(history)
 
     def auto_update_loop(self):

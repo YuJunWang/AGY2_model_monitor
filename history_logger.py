@@ -38,15 +38,16 @@ def _load_history():
     try:
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except:
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[history_logger] Failed to load history: {e}")
         return []
 
 def _save_history(history):
     try:
         with open(HISTORY_FILE, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2)
-    except:
-        pass
+    except OSError as e:
+        print(f"[history_logger] Failed to save history: {e}")
 
 if __name__ == "__main__":
     # Test
