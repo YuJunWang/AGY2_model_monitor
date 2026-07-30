@@ -14,9 +14,9 @@ ARC_BG = "#3C4043"
 TEXT_FG = "#E8EAED"
 TEXT_MUTED = "#9AA0A6"
 COLOR_GEMINI = "#4FC3F7"
-COLOR_GEMINI_WEEKLY = "#69F0AE"
+COLOR_GEMINI_WEEKLY = "#4FC3F7" # Same color family
 COLOR_EXT = "#FFB74D"
-COLOR_EXT_WEEKLY = "#FF5252"
+COLOR_EXT_WEEKLY = "#FFB74D" # Same color family
 
 class ArcGauge(tk.Canvas):
     def __init__(self, parent, size=140, title="Title", color="#4FC3F7", **kwargs):
@@ -184,8 +184,12 @@ class UsageWidget:
         self.content = tk.Frame(self.main_frame, bg=BG_COLOR, padx=10, pady=10)
         self.content.pack(fill=tk.BOTH, expand=True)
         
+        # Container for Arcs to keep height constant
+        self.arcs_container = tk.Frame(self.content, bg=BG_COLOR)
+        self.arcs_container.pack(fill=tk.X)
+        
         # Top Arcs (5hr limits)
-        self.top_arcs_frame = tk.Frame(self.content, bg=BG_COLOR)
+        self.top_arcs_frame = tk.Frame(self.arcs_container, bg=BG_COLOR)
         self.top_arcs_frame.pack(fill=tk.X)
         
         self.gemini_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="Gemini (5h)", color=COLOR_GEMINI)
@@ -194,20 +198,20 @@ class UsageWidget:
         self.ext_5h_gauge = ArcGauge(self.top_arcs_frame, size=150, title="External (5h)", color=COLOR_EXT)
         self.ext_5h_gauge.pack(side=tk.RIGHT, padx=5)
         
-        # Collapsible Toggle
-        self.toggle_btn = tk.Label(self.content, text="▼", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 10), cursor="hand2")
-        self.toggle_btn.pack(pady=5)
-        self.toggle_btn.bind("<Button-1>", self.toggle_weekly)
-        self.show_weekly = False
-        
         # Bottom Arcs (Weekly limits) - Hidden by default
-        self.weekly_arcs_frame = tk.Frame(self.content, bg=BG_COLOR)
+        self.weekly_arcs_frame = tk.Frame(self.arcs_container, bg=BG_COLOR)
         
         self.gemini_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="Gemini (Weekly)", color=COLOR_GEMINI_WEEKLY)
         self.gemini_w_gauge.pack(side=tk.LEFT, padx=5)
         
         self.ext_w_gauge = ArcGauge(self.weekly_arcs_frame, size=150, title="External (Weekly)", color=COLOR_EXT_WEEKLY)
         self.ext_w_gauge.pack(side=tk.RIGHT, padx=5)
+        
+        # Collapsible Toggle
+        self.toggle_btn = tk.Label(self.content, text="▶ 切換週用量", bg=BG_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 9), cursor="hand2")
+        self.toggle_btn.pack(pady=5)
+        self.toggle_btn.bind("<Button-1>", self.toggle_weekly)
+        self.show_weekly = False
         
         # History Chart
         self.chart_frame = tk.Frame(self.content, bg="#2A2B2E", bd=1, relief="solid")
@@ -216,9 +220,8 @@ class UsageWidget:
         self.chart = HistoryChart(self.chart_frame, width=310, height=90)
         self.chart.pack(padx=5, pady=5)
         
-        # Adjust height
+        # Fixed height
         self.base_height = 320
-        self.expanded_height = 470
         self.root.geometry(f"{self.width}x{self.base_height}")
 
     def start_move(self, event):
@@ -235,13 +238,13 @@ class UsageWidget:
     def toggle_weekly(self, event=None):
         self.show_weekly = not self.show_weekly
         if self.show_weekly:
-            self.toggle_btn.config(text="▲")
-            self.weekly_arcs_frame.pack(fill=tk.X, before=self.chart_frame)
-            self.root.geometry(f"{self.width}x{self.expanded_height}")
+            self.toggle_btn.config(text="◀ 返回 5h 用量")
+            self.top_arcs_frame.pack_forget()
+            self.weekly_arcs_frame.pack(fill=tk.X)
         else:
-            self.toggle_btn.config(text="▼")
+            self.toggle_btn.config(text="▶ 切換週用量")
             self.weekly_arcs_frame.pack_forget()
-            self.root.geometry(f"{self.width}x{self.base_height}")
+            self.top_arcs_frame.pack(fill=tk.X)
 
     def create_tray_icon(self):
         width = 64
@@ -265,7 +268,7 @@ class UsageWidget:
         self.root.deiconify()
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        current_h = self.expanded_height if self.show_weekly else self.base_height
+        current_h = self.base_height
         x = screen_width - self.width - 20
         y = screen_height - current_h - 60
         self.root.geometry(f"+{x}+{y}")
