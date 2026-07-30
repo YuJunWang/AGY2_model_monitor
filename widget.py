@@ -185,19 +185,19 @@ class UsageWidget:
             self.is_fetching = False
             
     def update_ui_with_data(self, data):
-        g = data["gemini"]
-        e = data["external"]
+        g = data.get("gemini", {})
+        e = data.get("external", {})
         
         # Color based on usage (Red if > 90%)
-        g_color = self.warning_color if g["5hr_percent"] > 90 else self.accent_color
+        g_color = self.warning_color if g.get("5hr_percent", 0) > 90 else self.accent_color
         
-        self.gemini_pct_lbl.config(text=f"{g['5hr_percent']}%", fg=g_color)
-        self.gemini_text_lbl.config(text=f"已用: {g['5hr_used']} / 總共: {g['5hr_limit']}")
+        self.gemini_pct_lbl.config(text=f"{g.get('5hr_percent', 0)}%", fg=g_color)
+        self.gemini_text_lbl.config(text=f"重置時間: {g.get('reset_time_5h', '--')}")
         
-        self.ext_lbl.config(text=f"已用: {e['5hr_used']} / 總共: {e['5hr_limit']} ({e['5hr_percent']}%)")
-        self.gemini_weekly_lbl.config(text=f"已用: {g['weekly_used']} / 總共: {g['weekly_limit']} ({g['weekly_percent']}%)")
+        self.ext_lbl.config(text=f"已用: {e.get('5hr_percent', 0)}% (重置: {e.get('reset_time_5h', '--')})")
+        self.gemini_weekly_lbl.config(text=f"已用: {g.get('weekly_percent', 0)}% (重置: {g.get('reset_time_weekly', '--')})")
         
-        self.time_lbl.config(text=f"上次更新: {data['last_updated']}")
+        self.time_lbl.config(text=f"上次更新: {data.get('last_updated', '--')}")
 
     def auto_update_loop(self):
         while True:

@@ -1,45 +1,146 @@
 import json
-import random
-import time
-from datetime import datetime
+import urllib.request
+import websocket
+import threading
+import ssl
+import re
 
-# ==============================================================================
-# Antigravity 2.0 API Data Fetcher (Mock for now)
-# ==============================================================================
-# 目前 Antigravity 的 agentapi 尚未開放直接獲取 Quota 的 public endpoint。
-# 這裡先建立好資料結構與介面，當未來 Antigravity 支援 `agentapi get-quota` 時，
-# 只要替換這個函式內的 `subprocess.run` 即可，完全不需要更動 UI 程式碼！
-# ==============================================================================
+class QuotaFetcher:
+    def __init__(self):
+        self.port = None
+        self.csrf_token = None
+        self.lock = threading.Lock()
+        
+    def _fetch_credentials_via_cdp(self):
+        """Uses CDP to silently extract the dynamic port and CSRF token from background traffic."""
+        try:
+            req = urllib.request.Request("http://localhost:57297/json/list")
+            with urllib.request.urlopen(req) as response:
+                pages = json.loads(response.read())
+        except Exception as e:
+            print("Could not connect to CDP:", e)
+            return False
+
+        ws_url = None
+        for page in pages:
+            if page.get("type") == "page":
+                ws_url = page.get("webSocketDebuggerUrl")
+                break
+
+        if not ws_url:
+            return False
+
+        found = []
+
+        def on_message(ws, message):
+            data = json.loads(message)
+            if data.get("method") == "Network.requestWillBeSent":
+                url = data["params"]["request"]["url"]
+                if "LanguageServerService" in url:
+                    headers = data["params"]["request"]["headers"]
+                    if "x-codeium-csrf-token" in headers:
+                        # Extract port from URL (e.g. https://127.0.0.1:57298/...)
+                        match = re.search(r':(\d+)/', url)
+                        if match:
+                            found.append({
+                                "port": match.group(1),
+                                "token": headers["x-codeium-csrf-token"]
+                            })
+                            ws.close()
+
+        def on_open(ws):
+            ws.send(json.dumps({"id": 1, "method": "Network.enable"}))
+
+        ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message)
+        ws.run_forever(suppress_origin=True)
+
+        if found:
+            self.port = found[0]["port"]
+            self.csrf_token = found[0]["token"]
+            return True
+        return False
+
+    def get_quota(self):
+        with self.lock:
+            if not self.port or not self.csrf_token:
+                success = self._fetch_credentials_via_cdp()
+                if not success:
+                    return None
+
+            url = f"https://127.0.0.1:{self.port}/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary"
+            headers = {
+                "Content-Type": "application/grpc-web+json",
+                "Accept": "application/grpc-web+json",
+                "x-grpc-web": "1",
+                "x-codeium-csrf-token": self.csrf_token
+            }
+            body = b'\x00\x00\x00\x00\x02{}'
+            
+            req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+            context = ssl._create_unverified_context()
+            
+            try:
+                with urllib.request.urlopen(req, context=context) as response:
+                    res_body = response.read().decode('utf-8', errors='ignore')
+                    # Parse gRPC-Web JSON payload
+                    match = re.search(r'({"response":.*?"}})', res_body)
+                    if match:
+                        return json.loads(match.group(1))
+            except Exception as e:
+                # Token or port might have expired/changed, reset them
+                self.port = None
+                self.csrf_token = None
+                
+            return None
+
+# Singleton instance
+fetcher = QuotaFetcher()
 
 def fetch_usage_data():
-    """
-    從 Antigravity 獲取模型使用量。
-    回傳格式為字典，包含 Gemini 與 External 模型的 5小時及每週額度。
-    """
-    # 模擬向 API 發送請求的延遲
-    time.sleep(0.5)
+    from datetime import datetime
+    data = fetcher.get_quota()
     
-    # 模擬解析出來的資料結構
-    mock_data = {
-        "gemini": {
-            "5hr_used": random.randint(10, 50),
-            "5hr_limit": 50,
-            "weekly_used": random.randint(100, 300),
-            "weekly_limit": 500
-        },
-        "external": {
-            "5hr_used": random.randint(0, 10),
-            "5hr_limit": 20,
-            "weekly_used": random.randint(20, 50),
-            "weekly_limit": 100
-        },
-        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Default fallback empty structure
+    result = {
+        "gemini": {"5hr_percent": 0, "weekly_percent": 0, "reset_time_5h": "", "reset_time_weekly": ""},
+        "external": {"5hr_percent": 0, "weekly_percent": 0, "reset_time_5h": "", "reset_time_weekly": ""},
+        "last_updated": datetime.now().strftime("%H:%M:%S")
     }
     
-    # 計算百分比
-    mock_data["gemini"]["5hr_percent"] = int((mock_data["gemini"]["5hr_used"] / mock_data["gemini"]["5hr_limit"]) * 100)
-    mock_data["gemini"]["weekly_percent"] = int((mock_data["gemini"]["weekly_used"] / mock_data["gemini"]["weekly_limit"]) * 100)
-    mock_data["external"]["5hr_percent"] = int((mock_data["external"]["5hr_used"] / mock_data["external"]["5hr_limit"]) * 100)
-    mock_data["external"]["weekly_percent"] = int((mock_data["external"]["weekly_used"] / mock_data["external"]["weekly_limit"]) * 100)
-    
-    return mock_data
+    if not data or "response" not in data:
+        return result
+        
+    for group in data["response"].get("groups", []):
+        is_gemini = "Gemini" in group.get("displayName", "")
+        
+        for bucket in group.get("buckets", []):
+            remaining = bucket.get("remainingFraction", 1)
+            used_pct = round((1 - remaining) * 100, 1)
+            reset = bucket.get("resetTime", "")
+            if reset:
+                try:
+                    # Convert '2026-07-30T08:38:06Z' to '08:38'
+                    dt = datetime.strptime(reset, "%Y-%m-%dT%H:%M:%SZ")
+                    reset = dt.strftime("%m/%d %H:%M")
+                except:
+                    pass
+                    
+            if bucket.get("window") == "5h":
+                if is_gemini:
+                    result["gemini"]["5hr_percent"] = used_pct
+                    result["gemini"]["reset_time_5h"] = reset
+                else:
+                    result["external"]["5hr_percent"] = used_pct
+                    result["external"]["reset_time_5h"] = reset
+            elif bucket.get("window") == "weekly":
+                if is_gemini:
+                    result["gemini"]["weekly_percent"] = used_pct
+                    result["gemini"]["reset_time_weekly"] = reset
+                else:
+                    result["external"]["weekly_percent"] = used_pct
+                    result["external"]["reset_time_weekly"] = reset
+                    
+    return result
+
+if __name__ == "__main__":
+    print(fetch_usage_data())
