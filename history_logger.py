@@ -7,7 +7,20 @@ HISTORY_FILE = os.path.join(os.path.dirname(__file__), "usage_history.json")
 def log_usage(gemini_5h_pct, external_5h_pct):
     """
     Appends the current usage to the history file.
+    Enforces a 2.5-minute cooldown to prevent manual refreshes from
+    polluting the time-series data with spurious near-zero delta values.
     """
+    history = _load_history()
+    
+    # Cooldown guard: skip if last entry was less than 2.5 minutes ago
+    if history:
+        try:
+            last_ts = datetime.fromisoformat(history[-1]["timestamp"])
+            if (datetime.now() - last_ts).total_seconds() < 150:  # 2.5 min
+                return  # Too soon — skip this log entry
+        except Exception:
+            pass  # If timestamp is malformed, just proceed to log
+    
     now = datetime.now().isoformat()
     record = {
         "timestamp": now,
@@ -15,7 +28,6 @@ def log_usage(gemini_5h_pct, external_5h_pct):
         "external_5h": external_5h_pct
     }
     
-    history = _load_history()
     history.append(record)
     
     # Prune history to keep only last 24 hours (approx 480 records at 3 min intervals)
