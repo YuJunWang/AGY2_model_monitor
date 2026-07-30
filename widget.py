@@ -101,9 +101,9 @@ class HistoryChart(tk.Canvas):
         if max_burn == 0:
             max_burn = 1 # avoid div by zero
             
-        # Area chart settings
-        step_x = 5
-        max_points = int((self.width - 20) / step_x)
+        # Area chart settings - exactly 6 hours (120 points of 3-min intervals)
+        max_points = 120
+        step_x = (self.width - 20) / max_points
         display_deltas = deltas[-max_points:]
         display_deltas.reverse() # start from newest
         
@@ -148,9 +148,11 @@ class HistoryChart(tk.Canvas):
         self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
         self.create_text(self.width-10, 10, text=f"max: {round(max_burn, 1)}%", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="e")
         
-        self.create_text(10, self.height-5, text=f"Last {len(display_deltas)*3} min", fill=TEXT_MUTED, font=("Segoe UI", 8), anchor="w")
+        # Display 6h span text instead of dynamic min
+        self.create_text(10, self.height-5, text="Last 6 Hours", fill=TEXT_MUTED, font=("Segoe UI", 8), anchor="w")
         
-        status_color = "#FF5252" if hourly_burn > 20 else ("#FFB74D" if hourly_burn > 10 else TEXT_MUTED)
+        # Avoid yellow/orange conflict. Use #E57373 (soft red) for medium warning, #FF5252 (bright red) for high warning.
+        status_color = "#FF5252" if hourly_burn > 20 else ("#E57373" if hourly_burn > 10 else TEXT_MUTED)
         self.create_text(self.width-10, self.height-5, text=f"🔥 {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 8), anchor="e")
 
 class UsageWidget:
