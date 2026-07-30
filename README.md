@@ -1,4 +1,4 @@
-# AGY Fuel Gauge 🚀
+﻿# AGY Fuel Gauge 🚀
 
 AGY Fuel Gauge is a background telemetry widget built to solve a simple problem: keeping track of your AI quotas without breaking your flow state. 
 
@@ -70,9 +70,9 @@ Once that's done, just restart your Antigravity IDE. You should see a little blu
 
 ## ✨ 它是怎麼運作的？
 
-- **自動找 Port 與 Token**：這支程式會去系統裡找 language_server.exe 這個 Process，並從啟動日誌直接把 x-codeium-csrf-token 抽出來。這意味著你不需要去設定任何麻煩的設定檔。
+- **自動找 Port 與 Token**：這支程式會去系統裡找 `language_server.exe` 這個 Process，並從啟動日誌直接把 `x-codeium-csrf-token` 抽出來。這意味著你不需要去設定任何麻煩的設定檔。
 - **270 度弧形儀表板**：為了讓畫面看起來更有質感，我們寫了一個專門配對 OLED 黑底的 UI 介面，而且還會幫你算好下一次配額重新發放的精準時間。
-- **燃燒速率**：它每 3 分鐘會在背景存一次檔，藉此來算出你現在每小時消耗了多少額度 (🔥 %/h)，讓你可以稍微控制一下使用節奏。
+- **燃燒速率**：它每 3 分鐘會在背景存一次檔，藉此來算出你現在每小時消耗了多少額度 (`🔥 %/h`)，讓你可以稍微控制一下使用節奏。
 
 > [!NOTE]
 > **為什麼不使用一般的折線圖？**  
@@ -83,29 +83,29 @@ Once that's done, just restart your Antigravity IDE. You should see a little blu
 ## 💻 支援環境
 - **Antigravity 2.0 (桌面版應用程式)**：100% 支援（強烈建議搭配 Sidecar 機制使用）。
 - **Antigravity IDE**：100% 支援。
-- **Antigravity CLI (gy)**：不支援。純指令列環境沒有常駐的背景服務可以讓我們抓取資料。
+- **Antigravity CLI (`agy`)**：不支援。純指令列環境沒有常駐的背景服務可以讓我們抓取資料。
 
 ## 🛠️ 安裝方式
 
 1. **把專案 Clone 下來**
-   `ash
+   ```bash
    git clone https://github.com/YuJunWang/AGY_Fuel_Gauge.git
    cd AGY_Fuel_Gauge
-   `
+   ```
 
 2. **裝好必備套件**
    確認你有裝好 Python 之後，執行：
-   `ash
+   ```bash
    pip install pystray Pillow
-   `
+   ```
 
 3. **掛載成系統守護進程 (強烈建議)**
    雖然你可以手動執行它，但強烈建議讓 Antigravity 的 Sidecar 機制來自動管理這個工具。
    
-   1. 打開你的 Antigravity 設定檔目錄（通常在 C:\Users\<你的帳號>\.gemini\config\sidecars\）。
-   2. 在裡面建立一個叫做 gy-fuel-gauge 的新資料夾。
-   3. 接著新增一個 sidecar.json 檔案，貼上以下內容（記得把 rgs 裡面的路徑換成你實際 clone 的地方）：
-      `json
+   1. 打開你的 Antigravity 設定檔目錄（通常在 `C:\Users\<你的帳號>\.gemini\config\sidecars\`）。
+   2. 在裡面建立一個叫做 `agy-fuel-gauge` 的新資料夾。
+   3. 接著新增一個 `sidecar.json` 檔案，貼上以下內容（記得把 `args` 裡面的路徑換成你實際 clone 的地方）：
+      ```json
       {
         "description": "AGY Fuel Gauge",
         "command": "pythonw",
@@ -114,6 +114,6 @@ Once that's done, just restart your Antigravity IDE. You should see a little blu
         ],
         "restart_policy": "always"
       }
-      `
+      ```
 
-設定好之後，只要重新啟動你的 Antigravity IDE，就可以檢查右下角 Windows 系統匣是不是出現藍色的 AGY 小圖示了！(按右上角的 ✕ 只是把它收進系統匣繼續背景記錄，對著圖示點右鍵就可以再次喚醒它)。
+設定好之後，只要重新啟動你的 Antigravity IDE，就可以檢查右下角 Windows 系統匣是不是出現藍色的 AGY 小圖示了！(按右上角的 `✕` 只是把它收進系統匣繼續背景記錄，對著圖示點右鍵就可以再次喚醒它)。
