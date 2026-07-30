@@ -205,13 +205,13 @@ class HistoryChart(tk.Canvas):
         poly_gem = [(10, mid_y)] + gem_pts + [(self.width - 10, mid_y)]
         self.create_polygon(poly_gem, fill="#0A1F30", outline="")  # dark blue fill
         if len(gem_pts) > 1:
-            self.create_line(gem_pts, fill=COLOR_GEMINI_GLOW, width=1.5, smooth=True)
+            self.create_line(gem_pts, fill=COLOR_GEMINI_GLOW, width=1.5)
 
         # Draw External area (Bottom half, growing DOWN) — warm amber fill
         poly_ext = [(10, mid_y)] + ext_pts + [(self.width - 10, mid_y)]
         self.create_polygon(poly_ext, fill="#3D2A0A", outline="")  # dark amber fill
         if len(ext_pts) > 1:
-            self.create_line(ext_pts, fill=COLOR_EXT_GLOW, width=1.5, smooth=True)
+            self.create_line(ext_pts, fill=COLOR_EXT_GLOW, width=1.5)
 
         # Mirror axis
         self.create_line(10, mid_y, self.width - 10, mid_y, fill="#333639", dash=(3, 3))
