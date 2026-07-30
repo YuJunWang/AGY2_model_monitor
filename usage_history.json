@@ -138,5 +138,25 @@
     "timestamp": "2026-07-30T13:21:52.023969",
     "gemini_5h": 59.9,
     "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:22:23.525810",
+    "gemini_5h": 59.9,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:24:26.056989",
+    "gemini_5h": 59.9,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:24:42.539731",
+    "gemini_5h": 56.2,
+    "external_5h": 100
+  },
+  {
+    "timestamp": "2026-07-30T13:25:33.048210",
+    "gemini_5h": 56.2,
+    "external_5h": 100
   }
 ]

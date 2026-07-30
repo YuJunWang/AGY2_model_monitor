@@ -254,13 +254,20 @@ class UsageWidget:
             self.top_arcs_frame.pack(fill=tk.X)
 
     def create_tray_icon(self):
-        width = 64
-        height = 64
-        image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-        dc = ImageDraw.Draw(image)
-        dc.ellipse([8, 8, 56, 56], fill=COLOR_GEMINI)
-        dc.text((22, 22), "AGY", fill="black")
-        return image
+        try:
+            # Try to load the newly generated icon image
+            import os
+            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.jpg")
+            return Image.open(icon_path)
+        except:
+            # Fallback to drawn icon if file is missing
+            width = 64
+            height = 64
+            image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+            dc = ImageDraw.Draw(image)
+            dc.ellipse([8, 8, 56, 56], fill=COLOR_GEMINI)
+            dc.text((22, 22), "AGY", fill="black")
+            return image
 
     def setup_tray(self):
         menu = pystray.Menu(
@@ -268,7 +275,7 @@ class UsageWidget:
             pystray.MenuItem('Refresh Now', self.trigger_refresh),
             pystray.MenuItem('Exit', self.exit_app)
         )
-        self.icon = pystray.Icon("AGYMonitor", self.create_tray_icon(), "AGY Toolkit", menu)
+        self.icon = pystray.Icon("AGYMonitor", self.create_tray_icon(), "AGY Fuel Gauge", menu)
         threading.Thread(target=self.icon.run, daemon=True).start()
 
     def show_window(self, icon=None, item=None):
