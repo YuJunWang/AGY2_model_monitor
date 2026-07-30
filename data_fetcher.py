@@ -115,6 +115,7 @@ def fetch_usage_data():
         
         for bucket in group.get("buckets", []):
             remaining = bucket.get("remainingFraction", 1)
+            remaining_pct = round(remaining * 100, 1)
             used_pct = round((1 - remaining) * 100, 1)
             reset = bucket.get("resetTime", "")
             if reset:
@@ -127,17 +128,21 @@ def fetch_usage_data():
                     
             if bucket.get("window") == "5h":
                 if is_gemini:
-                    result["gemini"]["5hr_percent"] = used_pct
+                    result["gemini"]["5hr_percent"] = remaining_pct
+                    result["gemini"]["5hr_used"] = used_pct
                     result["gemini"]["reset_time_5h"] = reset
                 else:
-                    result["external"]["5hr_percent"] = used_pct
+                    result["external"]["5hr_percent"] = remaining_pct
+                    result["external"]["5hr_used"] = used_pct
                     result["external"]["reset_time_5h"] = reset
             elif bucket.get("window") == "weekly":
                 if is_gemini:
-                    result["gemini"]["weekly_percent"] = used_pct
+                    result["gemini"]["weekly_percent"] = remaining_pct
+                    result["gemini"]["weekly_used"] = used_pct
                     result["gemini"]["reset_time_weekly"] = reset
                 else:
-                    result["external"]["weekly_percent"] = used_pct
+                    result["external"]["weekly_percent"] = remaining_pct
+                    result["external"]["weekly_used"] = used_pct
                     result["external"]["reset_time_weekly"] = reset
                     
     return result
