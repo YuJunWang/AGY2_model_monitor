@@ -11,14 +11,38 @@ class QuotaFetcher:
         self.csrf_token = None
         self.lock = threading.Lock()
         
+    def _discover_cdp_port(self):
+        import subprocess
+        try:
+            output = subprocess.check_output('netstat -ano | findstr LISTENING | findstr 127.0.0.1', shell=True).decode(errors='ignore')
+            for line in output.splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 5:
+                    port_str = parts[1].split(':')[-1]
+                    if not port_str.isdigit(): continue
+                    port = int(port_str)
+                    try:
+                        req = urllib.request.Request(f'http://localhost:{port}/json/list')
+                        with urllib.request.urlopen(req, timeout=0.5) as response:
+                            pages = json.loads(response.read())
+                            for page in pages:
+                                if page.get("type") == "page" and 'webSocketDebuggerUrl' in page:
+                                    return port
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+        return 57297 # fallback
+
     def _fetch_credentials_via_cdp(self):
         """Uses CDP to silently extract the dynamic port and CSRF token from background traffic."""
+        cdp_port = self._discover_cdp_port()
         try:
-            req = urllib.request.Request("http://localhost:57297/json/list")
+            req = urllib.request.Request(f"http://localhost:{cdp_port}/json/list")
             with urllib.request.urlopen(req) as response:
                 pages = json.loads(response.read())
         except Exception as e:
-            print("Could not connect to CDP:", e)
+            print(f"Could not connect to CDP on port {cdp_port}:", e)
             return False
 
         ws_url = None
