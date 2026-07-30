@@ -35,7 +35,7 @@ AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusiv
 2. **Install Dependencies**
    Ensure you have Python 3 installed.
    ```bash
-   pip install requests pystray Pillow
+   pip install pystray Pillow
    ```
 
 3. **Automate with Antigravity Sidecar (Highly Recommended)**
@@ -96,7 +96,7 @@ AGY Fuel Gauge 是一個專為 Antigravity 打造的高質感背景監控儀表�
 2. **安裝必備套件**
    請確認您已安裝 Python 3，接著執行以下指令：
    ```bash
-   pip install requests pystray Pillow
+   pip install pystray Pillow
    ```
 
 3. **設定為 Antigravity Sidecar 自動啟動 (強烈推薦)**

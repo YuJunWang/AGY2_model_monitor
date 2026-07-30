@@ -1,0 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local user data (DO NOT COMMIT)
+usage_history.json
+.credentials_cache.json
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
