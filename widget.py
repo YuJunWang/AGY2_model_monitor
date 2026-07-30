@@ -158,11 +158,11 @@ class HistoryChart(tk.Canvas):
         # ── Labels ────────────────────────────────────────────────────────────────
         self.create_text(10, 10, text="Usage History", fill=TEXT_MUTED, font=("Segoe UI", 9), anchor="w")
         status_color = "#FF5252" if hourly_burn > 20 else ("#E57373" if hourly_burn > 10 else TEXT_MUTED)
-        self.create_text(self.width - 10, 10, text=f"⚡ {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 9), anchor="e")
+        self.create_text(self.width - 16, 10, text=f"⚡ {round(hourly_burn, 1)}%/h", fill=status_color, font=("Segoe UI", 9), anchor="e")
         
         # Time axis: -6h (left), tick marks at -4h & -2h, now (right)
         self.create_text(12, self.height - 5, text="-6h", fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="w")
-        self.create_text(self.width - 12, self.height - 5, text="now", fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="e")
+        self.create_text(self.width - 16, self.height - 5, text="now", fill=TEXT_MUTED, font=("Segoe UI", 7), anchor="e")
         for bucket_idx, label in [(40, "-4h"), (80, "-2h")]:
             mark_x = 10 + (bucket_idx + 0.5) * step_x
             self.create_line(mark_x, y_base - 4, mark_x, y_base, fill=ARC_BG)
@@ -273,17 +273,15 @@ class UsageWidget:
         
     def build_ui(self):
         # Main container with border
-        self.main_frame = tk.Frame(self.root, bg=BG_COLOR, highlightbackground="#3A3B3C", highlightthickness=1)
+        self.main_frame = tk.Frame(self.root, bg=BG_COLOR, highlightbackground="#333333", highlightthickness=1)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Header (Drag handle)
-        self.header = tk.Frame(self.main_frame, bg="#2D2D2D", height=24)
+        # Title bar (draggable)
+        self.header = tk.Frame(self.main_frame, bg="#2D2D2D", height=28)
         self.header.pack(fill=tk.X)
         self.header.pack_propagate(False)
-        self.header.bind("<ButtonPress-1>", self.start_move)
-        self.header.bind("<B1-Motion>", self.do_move)
         
-        title = tk.Label(self.header, text="AGY Fuel Gauge", bg="#2D2D2D", fg=TEXT_FG, font=("Segoe UI", 9, "bold"))
+        title = tk.Label(self.header, text="AGY Fuel Gauge", bg="#2D2D2D", fg=TEXT_FG, font=("Segoe UI", 10, "bold"))
         title.pack(side=tk.LEFT, padx=10, pady=5)
         title.bind("<ButtonPress-1>", self.start_move)
         title.bind("<B1-Motion>", self.do_move)
