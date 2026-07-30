@@ -262,7 +262,7 @@ class UsageWidget:
         self.root.withdraw()
         
         self.width = 340
-        self.base_height = 290
+        self.base_height = 320
         
         # Variables for dragging
         self.x = 0

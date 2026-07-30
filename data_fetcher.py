@@ -25,41 +25,73 @@ class QuotaFetcher:
         self.csrf_token = None
 
     def _find_antigravity_ports(self):
-        """Find Antigravity.exe PIDs and locate their listening ports."""
+        """Find gRPC port by directly querying language_server.exe's listening ports."""
         try:
-            output = subprocess.check_output('tasklist /FI "IMAGENAME eq Antigravity.exe"', shell=True).decode(errors='ignore')
-            pids = set()
-            for line in output.splitlines():
-                if 'Antigravity.exe' in line:
+            # Step 1: Get language_server.exe PIDs
+            ls_out = subprocess.check_output(
+                'tasklist /FI "IMAGENAME eq language_server.exe"', shell=True
+            ).decode(errors='ignore')
+            ls_pids = set()
+            for line in ls_out.splitlines():
+                if 'language_server.exe' in line:
                     parts = line.split()
                     if len(parts) >= 2 and parts[1].isdigit():
-                        pids.add(parts[1])
+                        ls_pids.add(parts[1])
 
-            if not pids:
+            if not ls_pids:
+                print("[data_fetcher] language_server.exe not found.")
                 return None, None
 
+            # Step 2: Find all ports listening under language_server PIDs
             net_out = subprocess.check_output('netstat -ano', shell=True).decode(errors='ignore')
+            candidate_ports = []
             for line in net_out.splitlines():
                 if 'LISTENING' in line:
                     parts = line.split()
-                    if len(parts) >= 5 and parts[-1] in pids:
+                    if len(parts) >= 5 and parts[-1] in ls_pids:
                         port_str = parts[1].split(':')[-1]
                         if port_str.isdigit():
-                            cdp_port = int(port_str)
-                            # Verify port responds to DevTools /json/list
-                            try:
-                                req = urllib.request.Request(f"http://localhost:{cdp_port}/json/list")
-                                with urllib.request.urlopen(req, timeout=0.5) as resp:
-                                    pages = json.loads(resp.read())
-                                    if isinstance(pages, list) and len(pages) > 0:
-                                        grpc_port = cdp_port + 1
-                                        return cdp_port, grpc_port
-                            except Exception:
-                                continue
+                            candidate_ports.append(int(port_str))
+
+            if not candidate_ports:
+                print("[data_fetcher] No listening ports found for language_server.exe.")
+                return None, None
+
+            # Step 3: Try each candidate port with an HTTPS gRPC-Web probe
+            # The correct port will accept the connection (even if it returns an error body)
+            csrf_token = self._extract_csrf_token()
+            if not csrf_token:
+                # Without token we can't probe; just return the lowest port as best guess
+                candidate_ports.sort()
+                return None, candidate_ports[0]
+
+            ctx = __import__('ssl')._create_unverified_context()
+            for port in sorted(candidate_ports):
+                try:
+                    probe_url = f"https://127.0.0.1:{port}{GRPC_PATH}"
+                    probe_req = urllib.request.Request(
+                        probe_url,
+                        data=b'\x00\x00\x00\x00\x02{}',
+                        headers={
+                            "Content-Type": "application/grpc-web+json",
+                            "x-grpc-web": "1",
+                            "x-codeium-csrf-token": csrf_token,
+                        },
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(probe_req, context=ctx, timeout=2) as resp:
+                        resp.read()  # If we get any response, this is the gRPC port
+                        return None, port  # cdp_port not needed; grpc_port found
+                except urllib.error.HTTPError:
+                    return None, port  # HTTP error = server responded = correct port
+                except Exception:
+                    continue  # Connection refused or timeout = wrong port
+
         except Exception as e:
             print(f"[data_fetcher] Error discovering ports: {e}")
 
         return None, None
+
 
     def _extract_csrf_token(self):
         """Extract the latest --csrf_token from Antigravity's main.log."""
