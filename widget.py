@@ -288,7 +288,7 @@ class UsageWidget:
         
         # Last updated timestamp (shown after first fetch)
         self.last_updated_label = tk.Label(self.header, text="", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 7))
-        self.last_updated_label.pack(side=tk.LEFT, padx=6)
+        self.last_updated_label.pack(side=tk.RIGHT, padx=5)
         
         # Refresh and close buttons
         close_btn = tk.Label(self.header, text="X", bg="#2D2D2D", fg=TEXT_MUTED, font=("Segoe UI", 9, "bold"), cursor="hand2")
