@@ -101,30 +101,44 @@ class HistoryChart(tk.Canvas):
         if max_burn == 0:
             max_burn = 1 # avoid div by zero
             
-        # Draw bars
-        bar_w = 4
-        spacing = 2
-        total_bars = len(deltas)
-        max_bars = int((self.width - 20) / (bar_w + spacing))
+        # Area chart settings
+        step_x = 5
+        max_points = int((self.width - 20) / step_x)
+        display_deltas = deltas[-max_points:]
+        display_deltas.reverse() # start from newest
         
-        display_deltas = deltas[-max_bars:]
+        gem_points = []
+        ext_points = []
         
-        start_x = 10
+        curr_x = self.width - 10
+        
         for g, e in display_deltas:
             h_g = (g / max_burn) * (self.height - 30)
             h_e = (e / max_burn) * (self.height - 30)
             
-            # draw stacked bar (gemini on bottom, ext on top)
-            if g > 0:
-                self.create_rectangle(start_x, y_base - h_g, start_x + bar_w, y_base, fill=COLOR_GEMINI, outline="")
-            if e > 0:
-                self.create_rectangle(start_x, y_base - h_g - h_e, start_x + bar_w, y_base - h_g, fill=COLOR_EXT, outline="")
+            gem_points.append((curr_x, y_base - h_g))
+            ext_points.append((curr_x, y_base - h_g - h_e))
             
-            # minimal dots for zero burn
-            if g == 0 and e == 0:
-                self.create_rectangle(start_x, y_base-2, start_x + bar_w, y_base, fill=ARC_BG, outline="")
-                
-            start_x += bar_w + spacing
+            curr_x -= step_x
+            
+        if len(gem_points) == 1:
+            # Duplicate the single point so polygon renders correctly
+            gem_points.append((curr_x, gem_points[0][1]))
+            ext_points.append((curr_x, ext_points[0][1]))
+            curr_x -= step_x
+            
+        if gem_points:
+            # Draw External (Total) Area
+            poly_ext = [(self.width - 10, y_base)] + ext_points + [(curr_x + step_x, y_base)]
+            self.create_polygon(poly_ext, fill=COLOR_EXT, outline="")
+            
+            # Draw Gemini Area
+            poly_gem = [(self.width - 10, y_base)] + gem_points + [(curr_x + step_x, y_base)]
+            self.create_polygon(poly_gem, fill=COLOR_GEMINI, outline="")
+            
+            # Top line for sharpness
+            if len(ext_points) > 1:
+                self.create_line(ext_points, fill=COLOR_EXT, width=1.5, smooth=False)
             
         # Stats text
         avg_burn = sum([g+e for g,e in display_deltas]) / len(display_deltas)
