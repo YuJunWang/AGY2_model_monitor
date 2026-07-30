@@ -2,7 +2,7 @@
 
 AGY Fuel Gauge is a sleek, background-running telemetry widget designed exclusively for Antigravity. It monitors your language model quotas (Gemini and External models like Claude/GPT) in real-time, completely bypassing the need for manual browser interactions by utilizing Chrome DevTools Protocol (CDP) to seamlessly hook into your active Antigravity session.
 
-![Widget Preview](./preview.png) *(Preview image placeholder)*
+![Widget Preview](./preview.png)
 
 ## ✨ Features
 - **Real-Time Telemetry**: Accurately fetches your 5-hour and weekly remaining quotas directly from the Antigravity gRPC-Web API.
