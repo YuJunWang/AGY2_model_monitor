@@ -400,7 +400,7 @@ class UsageWidget:
     def create_tray_icon(self):
         try:
             # os is already imported at the top of the module
-            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.jpg")
+            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.png")
             return Image.open(icon_path)
         except Exception:
             # Fallback to drawn icon if file is missing
