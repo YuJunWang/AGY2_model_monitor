@@ -197,14 +197,14 @@ class VerticalHistoryChart(tk.Canvas):
         now = datetime.now()
         y_range = y_bottom - y_top
         
-        # Pixel-perfect grid mapping: 1px per row (no vertical gap)
-        NUM_ROWS = int(y_range)
-        bucket_duration_min = 360.0 / NUM_ROWS
+        # Time-first grid mapping: exactly 120 buckets (3 mins each)
+        NUM_BUCKETS = 120
+        BUCKET_MIN = 3
         
         buckets = [] 
-        for i in range(0, NUM_ROWS):
-            b_end = now - timedelta(minutes=i * bucket_duration_min)
-            b_start = now - timedelta(minutes=(i + 1) * bucket_duration_min)
+        for i in range(0, NUM_BUCKETS):
+            b_end = now - timedelta(minutes=i * BUCKET_MIN)
+            b_start = now - timedelta(minutes=(i + 1) * BUCKET_MIN)
             
             before = [(ts, g, e) for ts, g, e in parsed if ts <= b_start]
             in_win = [(ts, g, e) for ts, g, e in parsed if b_start < ts <= b_end]
@@ -219,34 +219,37 @@ class VerticalHistoryChart(tk.Canvas):
                 ext_drop = 0
             buckets.append((gem_drop, ext_drop))
             
+        step_y = y_range / NUM_BUCKETS
         # ABSOLUTE FIXED SCALE: 0.5% per block. Max 10 blocks = 5.0%
         # Block rendering: 2px wide, 1px gap -> Step is 3px
         BLOCK_STEP = 3
         
         for idx, (g, e) in enumerate(buckets):
-            cy = int(y_top + idx)
+            cy = int(y_top + (idx * step_y))
+            cy_next = int(y_top + ((idx + 1) * step_y))
+            h_rect = max(cy + 1, cy_next)
             
             # Draw Gemini Blocks (Gradient: Green -> Yellow)
             g_blocks = min(10, int(g / 0.5))
             is_g_overflow = (g >= 5.0)
             for b in range(g_blocks):
                 x_right = mid_x - 3 - (b * BLOCK_STEP)
-                x_left = x_right - 1
+                x_left = x_right - 2
                 factor = b / 9.0
                 color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", factor)
                 if is_g_overflow: color = highlight_rgb(color, 1.5, 80)
-                self.create_line(x_left, cy, x_right, cy, fill=color, width=1.0)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
             # Draw External Blocks (Gradient: Orange -> Red)
             e_blocks = min(10, int(e / 0.5))
             is_e_overflow = (e >= 5.0)
             for b in range(e_blocks):
                 x_left = mid_x + 3 + (b * BLOCK_STEP)
-                x_right = x_left + 1
+                x_right = x_left + 2
                 factor = b / 9.0
                 color = interpolate_color(COLOR_EXT_SAFE, "#E11D48", factor)
                 if is_e_overflow: color = highlight_rgb(color, 1.5, 80)
-                self.create_line(x_left, cy, x_right, cy, fill=color, width=1.0)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
