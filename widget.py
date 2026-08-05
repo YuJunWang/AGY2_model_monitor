@@ -312,10 +312,14 @@ class UsageWidget:
         close_btn = tk.Label(self.header, text="✕", bg=HEADER_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 8), cursor="hand2")
         close_btn.pack(side=tk.RIGHT, padx=6)
         close_btn.bind("<Button-1>", lambda e: self.hide_window())
+        close_btn.bind("<Enter>", lambda e: close_btn.config(fg=COLOR_EXT_DANGER))
+        close_btn.bind("<Leave>", lambda e: close_btn.config(fg=TEXT_MUTED))
         
         self.refresh_btn = tk.Label(self.header, text="↻", bg=HEADER_COLOR, fg=TEXT_MUTED, font=("Segoe UI", 9), cursor="hand2")
         self.refresh_btn.pack(side=tk.RIGHT, padx=2)
         self.refresh_btn.bind("<Button-1>", lambda e: self.trigger_refresh())
+        self.refresh_btn.bind("<Enter>", lambda e: self.refresh_btn.config(fg=TEXT_FG))
+        self.refresh_btn.bind("<Leave>", lambda e: self.refresh_btn.config(fg=TEXT_MUTED if not getattr(self, "is_fetching", False) else COLOR_GEM_SAFE))
         
         self.last_update_lbl = tk.Label(self.header, text="--:--", bg=HEADER_COLOR, fg=TEXT_MUTED, font=(DIGITAL_FONT, 7))
         self.last_update_lbl.pack(side=tk.LEFT, padx=6)
@@ -430,7 +434,7 @@ class UsageWidget:
             
     def fetch_and_update(self):
         self.is_fetching = True
-        self.root.after(0, lambda: self.refresh_btn.config(fg=COLOR_GEMINI_GLOW))
+        self.root.after(0, lambda: self.refresh_btn.config(fg=COLOR_GEM_SAFE))
         try:
             data = data_fetcher.fetch_usage_data()
             self.root.after(0, self.update_ui_with_data, data)
