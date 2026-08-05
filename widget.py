@@ -260,8 +260,8 @@ class VerticalHistoryChart(tk.Canvas):
         self.create_text(8, self.height / 2, text=f"{round(gem_hourly, 1)} %/h", fill=gem_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
         self.create_text(self.width-8, self.height / 2, text=f"{round(ext_hourly, 1)} %/h", fill=ext_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
         
-        # -6H label pushed all the way to the bottom edge
-        self.create_text(mid_x, self.height - 2, text="-6H", fill=TEXT_MUTED, font=("Segoe UI", 6), anchor="s")
+        # -6H label pushed all the way to the bottom edge, slightly larger and brighter
+        self.create_text(mid_x, self.height - 2, text="-6H", fill="#94A3B8", font=("Segoe UI", 7, "bold"), anchor="s")
 
 class UsageWidget:
     def __init__(self):
