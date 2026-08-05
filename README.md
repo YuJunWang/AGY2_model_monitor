@@ -5,15 +5,15 @@ AGY Fuel Gauge is a background telemetry widget that keeps your AI quotas visibl
 The trick is surprisingly simple: Antigravity IDE already runs a local background daemon (`language_server.exe`) that handles all your token traffic. We eavesdrop on it. This widget hooks directly into that internal gRPC-Web API, giving you an accurate, real-time view of your Gemini and External model usage—no credentials required, no config files to maintain.
 
 <p align="center">
-  <img src="./assets/preview_5h.png?v=2" alt="5-Hour Quota View" width="45%" />
-  &nbsp;&nbsp;
-  <img src="./assets/preview_weekly.png?v=2" alt="Weekly Quota View" width="45%" />
+  <img src="./assets/widget_final_1.png" alt="Vertical Fuel Gauge 5H View" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./assets/widget_final_2.png" alt="Vertical Fuel Gauge Weekly View" />
 </p>
 
 ## ✨ How it actually works
 
 - **Zero Auth Setup**: The widget scans for your active `language_server.exe` process to dynamically locate its listening port, then reads the `x-codeium-csrf-token` straight from the startup logs. Nothing to configure.
-- **Custom UI**: A 270-degree arc gauge designed for OLED black backgrounds, with an exact quota reset countdown.
+- **Cyber-Stick UI**: An irregular L-shaped floating glass interface with vertical fluid gauges designed for OLED black backgrounds. Uses native Windows GDI region APIs (`SetWindowRgn`) for a frameless, perfectly rounded asymmetrical shape.
 - **Hourly Burn Rate**: Local snapshots every 3 minutes let it calculate your exact `🔥 %/h` consumption rate, so you can pace yourself.
 
 > [!NOTE]
@@ -71,7 +71,7 @@ Restart your Antigravity IDE. A blue AGY icon should appear in your Windows syst
 ## ✨ 它是怎麼運作的？
 
 - **自動找 Port 與 Token**：程式會找到 `language_server.exe` 的進程來定位目前監聽的 Port，並從啟動日誌直接取出 `x-codeium-csrf-token`。你什麼都不用設定。
-- **270 度弧形儀表板**：專為 OLED 黑底設計的 UI，同時顯示配額重新發放的倒數時間。
+- **Cyber-Stick 賽博龐克介面**：採用不規則 L 型的懸浮玻璃面板與垂直能量條設計。底層呼叫 Windows 原生 GDI Region API，實現無邊框且具有完美不對稱圓角的幾何外觀。
 - **燃燒速率**：每 3 分鐘在背景存一次快照，藉此計算出你的 `🔥 %/h` 消耗速率，讓你可以調整使用節奏。
 
 > [!NOTE]
