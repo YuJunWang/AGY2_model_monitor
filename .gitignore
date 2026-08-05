@@ -8,6 +8,10 @@ usage_history.json
 .credentials_cache.json
 *.log
 
+# Scratch and Temporary files
+scratch/
+quota_body.txt
+
 # OS generated files
 .DS_Store
 Thumbs.db
