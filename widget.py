@@ -41,6 +41,29 @@ COLOR_EXT_CHART_OVERFLOW = "#EF4444" # Red 500
 
 DIGITAL_FONT        = "Fira Code" # Neo-Brutalism monospace
 
+# ── Utility: Color Gradient ───────────────────────────────────────────────
+def hex_to_rgb(hex_str):
+    hex_str = hex_str.lstrip('#')
+    return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+
+def rgb_to_hex(rgb):
+    return '#{:02x}{:02x}{:02x}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
+
+def interpolate_color(start_hex, end_hex, factor):
+    c1 = hex_to_rgb(start_hex)
+    c2 = hex_to_rgb(end_hex)
+    r = c1[0] + (c2[0] - c1[0]) * factor
+    g = c1[1] + (c2[1] - c1[1]) * factor
+    b = c1[2] + (c2[2] - c1[2]) * factor
+    return rgb_to_hex((r, g, b))
+
+def highlight_rgb(hex_str, multiplier=1.5, add_white=50):
+    r, g, b = hex_to_rgb(hex_str)
+    r = min(255, int(r * multiplier + add_white))
+    g = min(255, int(g * multiplier + add_white))
+    b = min(255, int(b * multiplier + add_white))
+    return rgb_to_hex((r, g, b))
+
 
 class VerticalFuelGauge(tk.Canvas):
     def __init__(self, parent, width=44, height=200, title="Title", is_gemini=True, text_side="right", **kwargs):
@@ -172,15 +195,16 @@ class VerticalHistoryChart(tk.Canvas):
             return
             
         now = datetime.now()
-        BUCKET_MIN = 3
-        # Fill height of the chart is 10 blocks (3px w, 1px gap) = 40px wide per side
-        # So we can just use 120 buckets (6 hours)
-        NUM_BUCKETS = 120
+        y_range = y_bottom - y_top
+        
+        # Pixel-perfect grid mapping: 2px per row (1px line, 1px gap)
+        NUM_ROWS = int(y_range // 2)
+        bucket_duration_min = 360.0 / NUM_ROWS
         
         buckets = [] 
-        for i in range(0, NUM_BUCKETS):
-            b_end = now - timedelta(minutes=i * BUCKET_MIN)
-            b_start = now - timedelta(minutes=(i + 1) * BUCKET_MIN)
+        for i in range(0, NUM_ROWS):
+            b_end = now - timedelta(minutes=i * bucket_duration_min)
+            b_start = now - timedelta(minutes=(i + 1) * bucket_duration_min)
             
             before = [(ts, g, e) for ts, g, e in parsed if ts <= b_start]
             in_win = [(ts, g, e) for ts, g, e in parsed if b_start < ts <= b_end]
@@ -195,31 +219,34 @@ class VerticalHistoryChart(tk.Canvas):
                 ext_drop = 0
             buckets.append((gem_drop, ext_drop))
             
-        step_y = y_range / NUM_BUCKETS
         # ABSOLUTE FIXED SCALE: 0.5% per block. Max 10 blocks = 5.0%
         # Block rendering: 2px wide, 1px gap -> Step is 3px
         BLOCK_STEP = 3
         
         for idx, (g, e) in enumerate(buckets):
-            cy = int(y_top + (idx + 0.5) * step_y)
+            cy = int(y_top + (idx * 2))
             
-            # Draw Gemini Blocks
+            # Draw Gemini Blocks (Gradient: Green -> Yellow)
             g_blocks = min(10, int(g / 0.5))
             is_g_overflow = (g >= 5.0)
-            g_color = COLOR_GEM_CHART_OVERFLOW if is_g_overflow else COLOR_GEM_CHART
             for b in range(g_blocks):
                 x_right = mid_x - 3 - (b * BLOCK_STEP)
                 x_left = x_right - 1
-                self.create_line(x_left, cy, x_right, cy, fill=g_color, width=1.0)
+                factor = b / 9.0
+                color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", factor)
+                if is_g_overflow: color = highlight_rgb(color, 1.5, 80)
+                self.create_line(x_left, cy, x_right, cy, fill=color, width=1.0)
                 
-            # Draw External Blocks
+            # Draw External Blocks (Gradient: Orange -> Red)
             e_blocks = min(10, int(e / 0.5))
             is_e_overflow = (e >= 5.0)
-            e_color = COLOR_EXT_CHART_OVERFLOW if is_e_overflow else COLOR_EXT_CHART
             for b in range(e_blocks):
                 x_left = mid_x + 3 + (b * BLOCK_STEP)
                 x_right = x_left + 1
-                self.create_line(x_left, cy, x_right, cy, fill=e_color, width=1.0)
+                factor = b / 9.0
+                color = interpolate_color(COLOR_EXT_SAFE, "#E11D48", factor)
+                if is_e_overflow: color = highlight_rgb(color, 1.5, 80)
+                self.create_line(x_left, cy, x_right, cy, fill=color, width=1.0)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
@@ -230,8 +257,8 @@ class VerticalHistoryChart(tk.Canvas):
         ext_color = COLOR_EXT_DANGER if ext_hourly > 20 else COLOR_EXT_SAFE
         
         # Floating Burn Rates (Reading top-to-bottom)
-        self.create_text(8, self.height / 2, text=f"{round(gem_hourly, 1)}%/h", fill=gem_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
-        self.create_text(self.width-8, self.height / 2, text=f"{round(ext_hourly, 1)}%/h", fill=ext_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
+        self.create_text(8, self.height / 2, text=f"{round(gem_hourly, 1)} %/h", fill=gem_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
+        self.create_text(self.width-8, self.height / 2, text=f"{round(ext_hourly, 1)} %/h", fill=ext_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
         
         # -6H label pushed all the way to the bottom edge
         self.create_text(mid_x, self.height - 2, text="-6H", fill=TEXT_MUTED, font=("Segoe UI", 6), anchor="s")
