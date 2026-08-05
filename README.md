@@ -14,13 +14,9 @@ The trick is surprisingly simple: Antigravity IDE already runs a local backgroun
 
 - **Zero Auth Setup**: The widget scans for your active `language_server.exe` process to dynamically locate its listening port, then reads the `x-codeium-csrf-token` straight from the startup logs. Nothing to configure.
 - **Cyber-Stick UI**: An irregular L-shaped floating glass interface with vertical fluid gauges designed for OLED black backgrounds. Uses native Windows GDI region APIs (`SetWindowRgn`) for a frameless, perfectly rounded asymmetrical shape.
-- **Hourly Burn Rate**: Local snapshots every 3 minutes let it calculate your exact `🔥 %/h` consumption rate, so you can pace yourself.
-
-> [!NOTE]
-> **Why not a standard line chart?**  
-> 1% of Gemini represents vastly more tokens than 1% of an external model. On a shared Y-axis, the external model line gets completely flattened—unreadable.
->
-> **The fix**: a Self-Normalized Mirrored Chart. Each dataset scales to its own local maximum. Gemini plots upward, External plots downward. Two clear trends, zero interference.
+- **Dynamic Color Tiers**: Both Gemini and External gauges feature a 3-tier reactive color system (Safe/Warn/Danger) that updates real-time based on your consumption.
+- **Absolute Equalizer Chart**: We ditched the misleading auto-scaling line charts. The history chart now uses a pixel-perfect 10-block discrete equalizer layout with a fixed absolute scale (max 5.0% per 3 minutes). Exceed the limit, and the blocks flash neon red.
+- **Micro-Animations**: A subtle green scanline sweeps across the data panel during background syncs, confirming telemetry without breaking your flow.
 
 ## 💻 Compatibility
 - **Antigravity 2.0 (Desktop App)**: 100% supported — run it as a Sidecar.
@@ -72,13 +68,9 @@ Restart your Antigravity IDE. A blue AGY icon should appear in your Windows syst
 
 - **自動找 Port 與 Token**：程式會找到 `language_server.exe` 的進程來定位目前監聽的 Port，並從啟動日誌直接取出 `x-codeium-csrf-token`。你什麼都不用設定。
 - **Cyber-Stick 賽博龐克介面**：採用不規則 L 型的懸浮玻璃面板與垂直能量條設計。底層呼叫 Windows 原生 GDI Region API，實現無邊框且具有完美不對稱圓角的幾何外觀。
-- **燃燒速率**：每 3 分鐘在背景存一次快照，藉此計算出你的 `🔥 %/h` 消耗速率，讓你可以調整使用節奏。
-
-> [!NOTE]
-> **為什麼不用一般的折線圖？**  
-> Gemini 消耗 1% 的運算量，遠大於 Claude 等外部模型的 1%。如果強行畫在同一個 Y 軸上，外部模型的那條線會完全被壓平，根本看不出趨勢。
->
-> **解法**：自我正規化的倒影圖（Mirrored Area Chart）。兩邊各自以自己的最大值為上限縮放——Gemini 往上長，外部模型往下長。兩條趨勢線清晰可讀，互不干擾。
+- **三段式動態變色**：Gemini 與外部模型皆具備三階段（安全/警告/危險）的色彩警示系統，能量柱會隨著消耗量即時變色。
+- **絕對刻度等化器 (Equalizer Chart)**：捨棄了容易造成誤判的平滑曲線，改用極致精準的「10 格實體方塊」陣列來呈現消耗歷史。鎖定絕對上限（單次最高 5.0%），如果瞬間消耗破表，方塊會瞬間轉為高亮度霓虹紅！
+- **掃描線微動畫**：每當背景成功抓取新資料時，圖表區會低調地掃過一條微光掃描線，提供「系統正在運作」的明確動態回饋，同時絕不干擾你的寫程式心流。
 
 ## 💻 支援環境
 - **Antigravity 2.0（桌面版）**：100% 支援，建議搭配 Sidecar 機制使用。

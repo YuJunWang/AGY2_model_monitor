@@ -18,28 +18,36 @@ import data_fetcher
 import history_logger
 
 TRANSPARENT_COLOR = "#000001"
-BG_COLOR       = "#12141A"
-HEADER_COLOR   = "#1A1D24"
-SURFACE_COLOR  = "#171A21"
-TRACK_BG       = "#262B33"
-TEXT_FG        = "#F0F2F4"
-TEXT_MUTED     = "#7A8086"
-COLOR_GEMINI        = "#29B6F6"
-COLOR_GEMINI_GLOW   = "#E1F5FE"
-COLOR_GEMINI_MID    = "#0277BD"
-COLOR_EXT           = "#FFA726"
-COLOR_EXT_GLOW      = "#FFF8E1"
-COLOR_EXT_MID       = "#E65100"
-DIGITAL_FONT        = "Consolas" # Monospace dashboard font
+BG_COLOR       = "#020617" # Slate 950
+HEADER_COLOR   = "#0F172A" # Slate 900
+SURFACE_COLOR  = "#0F172A" # Slate 900
+TRACK_BG       = "#1E293B" # Slate 800
+TEXT_FG        = "#F8FAFC" # Slate 50
+TEXT_MUTED     = "#64748B" # Slate 500
+
+# Gemini Dynamic Colors
+COLOR_GEM_SAFE   = "#22C55E" # Neon Green
+COLOR_GEM_WARN   = "#FACC15" # Yellow
+COLOR_GEM_DANGER = "#EF4444" # Red
+COLOR_GEM_CHART  = "#4ADE80" # Green 400 (matches Safe)
+COLOR_GEM_CHART_OVERFLOW = "#EF4444" # Red 500
+
+# External Dynamic Colors
+COLOR_EXT_SAFE   = "#F97316" # Orange 500
+COLOR_EXT_WARN   = "#EA580C" # Orange 600
+COLOR_EXT_DANGER = "#EF4444" # Red 500
+COLOR_EXT_CHART  = "#FB923C" # Orange 400 (matches Safe)
+COLOR_EXT_CHART_OVERFLOW = "#EF4444" # Red 500
+
+DIGITAL_FONT        = "Fira Code" # Neo-Brutalism monospace
+
 
 class VerticalFuelGauge(tk.Canvas):
-    def __init__(self, parent, width=40, height=200, title="Title", base_color=COLOR_GEMINI_MID, core_color=COLOR_GEMINI, tip_color=COLOR_GEMINI_GLOW, **kwargs):
+    def __init__(self, parent, width=44, height=200, title="Title", is_gemini=True, text_side="right", **kwargs):
         super().__init__(parent, width=width, height=height, bg=BG_COLOR, highlightthickness=0, **kwargs)
         self.width = width
         self.height = height
-        self.base_color = base_color
-        self.core_color = core_color
-        self.tip_color = tip_color
+        self.is_gemini = is_gemini
         
         # Dimensions for the vertical bar
         self.bar_width = 12
@@ -55,40 +63,52 @@ class VerticalFuelGauge(tk.Canvas):
         self.create_line(self.cx, self.y_bottom, self.cx, self.y_top, fill=TRACK_BG, width=self.bar_width, capstyle=tk.ROUND)
         
         # Reverted Glow (Base + Core)
-        self.line_base = self.create_line(self.cx, self.y_bottom, self.cx, self.y_bottom, fill=self.base_color, width=self.bar_width, capstyle=tk.ROUND)
-        self.line_core = self.create_line(self.cx, self.y_bottom, self.cx, self.y_bottom, fill=self.core_color, width=self.bar_width - 4, capstyle=tk.ROUND)
-        self.tip_dot = self.create_oval(0, 0, 0, 0, fill=self.tip_color, outline="", state="hidden")
+        self.line_base = self.create_line(self.cx, self.y_bottom, self.cx, self.y_bottom, fill="#000", width=self.bar_width, capstyle=tk.ROUND)
+        self.line_core = self.create_line(self.cx, self.y_bottom, self.cx, self.y_bottom, fill="#000", width=self.bar_width - 4, capstyle=tk.ROUND)
+        self.tip_dot = self.create_oval(0, 0, 0, 0, fill="#000", outline="", state="hidden")
         
-        # Percentage (Consolas/Digital style)
-        self.pct_text = self.create_text(self.cx, self.y_bottom + 18, text="--%", fill=self.core_color, font=(DIGITAL_FONT, 10, "bold"), justify="center")
-        self.title_text = self.create_text(self.cx, self.y_top - 16, text=title, fill=TEXT_MUTED, font=("Segoe UI", 8, "bold"), justify="center")
+        # Percentage (Fira Code)
+        self.pct_text = self.create_text(self.cx, self.y_bottom + 18, text="--%", fill=TEXT_FG, font=(DIGITAL_FONT, 10, "bold"), justify="center")
         
-        # Rotated time text placed right next to the bar
-        # Changed to Segoe UI 9 for better legibility (not bold to avoid smudging)
-        self.time_text = self.create_text(self.cx + 15, self.height / 2, text="--h", fill=TEXT_MUTED, font=("Segoe UI", 9), justify="center", angle=270)
+        title_color = COLOR_GEM_SAFE if is_gemini else COLOR_EXT_SAFE
+        self.title_text = self.create_text(self.cx, self.y_top - 16, text=title, fill=title_color, font=("Segoe UI", 8, "bold"), justify="center")
+        
+        text_x = self.cx + 15 if text_side == "right" else self.cx - 15
+        self.time_text = self.create_text(text_x, self.height / 2, text="--h", fill=TEXT_MUTED, font=("Segoe UI", 9), justify="center", angle=270)
 
     def set_value(self, pct_remaining, reset_time):
         val = max(0.0, min(100.0, pct_remaining))
         fill_height = self.track_height * (val / 100.0)
         curr_y = self.y_bottom - fill_height
         
+        if self.is_gemini:
+            if val <= 20:
+                core, base, tip = COLOR_GEM_DANGER, "#7F1D1D", "#FECACA"
+            elif val <= 50:
+                core, base, tip = COLOR_GEM_WARN, "#713F12", "#FEF08A"
+            else:
+                core, base, tip = COLOR_GEM_SAFE, "#14532D", "#86EFAC"
+        else:
+            if val <= 20:
+                core, base, tip = COLOR_EXT_DANGER, "#7F1D1D", "#FECACA"
+            elif val <= 50:
+                core, base, tip = COLOR_EXT_WARN, "#9A3412", "#FDBA74"
+            else:
+                core, base, tip = COLOR_EXT_SAFE, "#7C2D12", "#FED7AA"
+        
         self.coords(self.line_base, self.cx, self.y_bottom, self.cx, curr_y)
+        self.itemconfig(self.line_base, fill=base)
         self.coords(self.line_core, self.cx, self.y_bottom, self.cx, curr_y)
+        self.itemconfig(self.line_core, fill=core)
         
         if val > 0:
             r = (self.bar_width - 4) / 2
             self.coords(self.tip_dot, self.cx - r, curr_y - r, self.cx + r, curr_y + r)
-            self.itemconfig(self.tip_dot, state="normal")
+            self.itemconfig(self.tip_dot, fill=tip, state="normal")
         else:
             self.itemconfig(self.tip_dot, state="hidden")
             
-        self.itemconfig(self.pct_text, text=f"{int(val)}%")
-        if val <= 20:
-            self.itemconfig(self.pct_text, fill="#FF5252")
-        elif val <= 50:
-            self.itemconfig(self.pct_text, fill="#FDD835")
-        else:
-            self.itemconfig(self.pct_text, fill=self.core_color)
+        self.itemconfig(self.pct_text, text=f"{int(val)}%", fill=core)
             
         time_str = reset_time
         if reset_time and "Z" in reset_time:
@@ -153,6 +173,8 @@ class VerticalHistoryChart(tk.Canvas):
             
         now = datetime.now()
         BUCKET_MIN = 3
+        # Fill height of the chart is 10 blocks (3px w, 1px gap) = 40px wide per side
+        # So we can just use 120 buckets (6 hours)
         NUM_BUCKETS = 120
         
         buckets = [] 
@@ -173,43 +195,39 @@ class VerticalHistoryChart(tk.Canvas):
                 ext_drop = 0
             buckets.append((gem_drop, ext_drop))
             
-        gem_vals = [g for g, e in buckets]
-        ext_vals = [e for g, e in buckets]
-        gem_max = max(gem_vals) if any(v > 0 for v in gem_vals) else 1
-        ext_max = max(ext_vals) if any(v > 0 for v in ext_vals) else 1
-        
-        zone_w = (mid_x - 5)
         step_y = y_range / NUM_BUCKETS
-        
-        gem_pts = []
-        ext_pts = []
+        # ABSOLUTE FIXED SCALE: 0.5% per block. Max 10 blocks = 5.0%
+        # Block rendering: 2px wide, 1px gap -> Step is 3px
+        BLOCK_STEP = 3
         
         for idx, (g, e) in enumerate(buckets):
-            cy = y_top + (idx + 0.5) * step_y
-            w_g = (g / gem_max) * zone_w
-            w_e = (e / ext_max) * zone_w
-            gem_pts.append((mid_x - w_g, cy))
-            ext_pts.append((mid_x + w_e, cy))
+            cy = int(y_top + (idx + 0.5) * step_y)
             
-        # Draw Gemini Fill (Slightly brighter so it's clearly filled to center)
-        poly_gem = [(mid_x, y_top)] + gem_pts + [(mid_x, y_bottom), (mid_x, y_top)]
-        self.create_polygon(poly_gem, fill="#0F3352", outline="")
-        if len(gem_pts) > 1:
-            self.create_line(gem_pts, fill=COLOR_GEMINI_MID, width=1.5, smooth=True)
-            
-        # Draw External Fill (Slightly brighter)
-        poly_ext = [(mid_x, y_top)] + ext_pts + [(mid_x, y_bottom), (mid_x, y_top)]
-        self.create_polygon(poly_ext, fill="#4A2A0A", outline="")
-        if len(ext_pts) > 1:
-            self.create_line(ext_pts, fill=COLOR_EXT_MID, width=1.5, smooth=True)
+            # Draw Gemini Blocks
+            g_blocks = min(10, int(g / 0.5))
+            is_g_overflow = (g >= 5.0)
+            g_color = COLOR_GEM_CHART_OVERFLOW if is_g_overflow else COLOR_GEM_CHART
+            for b in range(g_blocks):
+                x_right = mid_x - 3 - (b * BLOCK_STEP)
+                x_left = x_right - 1
+                self.create_line(x_left, cy, x_right, cy, fill=g_color, width=1.0)
+                
+            # Draw External Blocks
+            e_blocks = min(10, int(e / 0.5))
+            is_e_overflow = (e >= 5.0)
+            e_color = COLOR_EXT_CHART_OVERFLOW if is_e_overflow else COLOR_EXT_CHART
+            for b in range(e_blocks):
+                x_left = mid_x + 3 + (b * BLOCK_STEP)
+                x_right = x_left + 1
+                self.create_line(x_left, cy, x_right, cy, fill=e_color, width=1.0)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
         gem_hourly = gem_total / 6.0
         ext_hourly = ext_total / 6.0
 
-        gem_color = "#FF5252" if gem_hourly > 20 else COLOR_GEMINI
-        ext_color = "#FF5252" if ext_hourly > 20 else COLOR_EXT
+        gem_color = COLOR_GEM_DANGER if gem_hourly > 20 else COLOR_GEM_SAFE
+        ext_color = COLOR_EXT_DANGER if ext_hourly > 20 else COLOR_EXT_SAFE
         
         # Floating Burn Rates (Reading top-to-bottom)
         self.create_text(8, self.height / 2, text=f"{round(gem_hourly, 1)}%/h", fill=gem_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
@@ -319,18 +337,20 @@ class UsageWidget:
         self.bars_frame = tk.Frame(self.main_frame, bg=BG_COLOR)
         self.bars_frame.pack(fill=tk.X, pady=4)
         
-        self.view_5h_frame = tk.Frame(self.bars_frame, bg=BG_COLOR)
+        self.view_5h_frame = tk.Frame(self.bars_frame, bg=BG_COLOR, height=210)
         self.view_5h_frame.pack(fill=tk.X)
-        self.gemini_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=50, height=210, title="GEM", base_color=COLOR_GEMINI_MID, core_color=COLOR_GEMINI, tip_color=COLOR_GEMINI_GLOW)
-        self.gemini_5h_gauge.pack(side=tk.LEFT)
-        self.ext_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=50, height=210, title="EXT", base_color=COLOR_EXT_MID, core_color=COLOR_EXT, tip_color=COLOR_EXT_GLOW)
-        self.ext_5h_gauge.pack(side=tk.RIGHT)
+        self.view_5h_frame.pack_propagate(False)
+        self.gemini_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=210, title="GEM", is_gemini=True, text_side="left")
+        self.gemini_5h_gauge.place(x=6, y=0)
+        self.ext_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=210, title="EXT", is_gemini=False, text_side="right")
+        self.ext_5h_gauge.place(x=60, y=0)
         
-        self.view_wk_frame = tk.Frame(self.bars_frame, bg=BG_COLOR)
-        self.gemini_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=50, height=210, title="GEM", base_color="#0277BD", core_color="#29B6F6", tip_color="#81D4FA")
-        self.gemini_wk_gauge.pack(side=tk.LEFT)
-        self.ext_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=50, height=210, title="EXT", base_color="#D84315", core_color="#FF7043", tip_color="#FFAB91")
-        self.ext_wk_gauge.pack(side=tk.RIGHT)
+        self.view_wk_frame = tk.Frame(self.bars_frame, bg=BG_COLOR, height=210)
+        self.view_wk_frame.pack_propagate(False)
+        self.gemini_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=210, title="GEM", is_gemini=True, text_side="left")
+        self.gemini_wk_gauge.place(x=6, y=0)
+        self.ext_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=210, title="EXT", is_gemini=False, text_side="right")
+        self.ext_wk_gauge.place(x=60, y=0)
 
         # Vertical History Chart
         self.chart_frame = tk.Frame(self.main_frame, bg=SURFACE_COLOR, bd=0, highlightthickness=0)
@@ -435,6 +455,35 @@ class UsageWidget:
         
         history = history_logger.get_history(minutes=360)
         self.chart.render(history)
+        
+        # Trigger scanline micro-animation
+        self.play_scanline_animation()
+
+    def play_scanline_animation(self):
+        # Create a scanning line on the main frame overlay
+        # Since tk.Frame doesn't support drawing, we will create a temporary canvas that covers the main_frame
+        scan_cv = tk.Canvas(self.main_frame, width=110, height=self.base_height, bg=BG_COLOR, highlightthickness=0)
+        # Use transparent color trick for the canvas background so we only see the line
+        scan_cv.place(x=0, y=0)
+        scan_cv.config(bg=TRANSPARENT_COLOR)
+        
+        # But wait, we didn't set transparentcolor on root anymore! We used SetWindowRgn.
+        # If we place a canvas over everything, it will hide widgets unless it's genuinely transparent (which tk Canvas isn't on Windows without SetLayeredWindowAttributes which affects the whole window).
+        # A better approach: We have `bars_frame` and `chart_frame`. We can just draw a moving line on the chart canvas since it's the biggest data area.
+        scan_cv.place_forget()
+        
+        # Draw on chart canvas instead
+        scan_line = self.chart.create_line(0, 0, self.chart.width, 0, fill=COLOR_GEM_SAFE, width=2)
+        
+        def animate(step=0):
+            if step > 20:
+                self.chart.delete(scan_line)
+                return
+            y = (step / 20.0) * self.chart.height
+            self.chart.coords(scan_line, 0, y, self.chart.width, y)
+            self.root.after(40, lambda: animate(step+1))
+            
+        animate(0)
 
     def auto_update_loop(self):
         while True:
