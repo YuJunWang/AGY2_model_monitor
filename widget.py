@@ -479,11 +479,21 @@ class UsageWidget:
         g = data.get("gemini", {})
         e = data.get("external", {})
         
-        self.gemini_5h_gauge.set_value(g.get("5hr_percent", 0), g.get("reset_time_5h", "--"))
-        self.ext_5h_gauge.set_value(e.get("5hr_percent", 0), e.get("reset_time_5h", "--"))
+        g_wk_pct = g.get("weekly_percent", 0)
+        e_wk_pct = e.get("weekly_percent", 0)
         
-        self.gemini_wk_gauge.set_value(g.get("weekly_percent", 0), g.get("reset_time_weekly", "--"))
-        self.ext_wk_gauge.set_value(e.get("weekly_percent", 0), e.get("reset_time_weekly", "--"))
+        # If weekly usage is 0, 5H usage should also be 0 and have no relevant reset time
+        g_5h_pct = 0 if g_wk_pct == 0 else g.get("5hr_percent", 0)
+        g_5h_time = "-h --m" if g_wk_pct == 0 else g.get("reset_time_5h", "--")
+        
+        e_5h_pct = 0 if e_wk_pct == 0 else e.get("5hr_percent", 0)
+        e_5h_time = "-h --m" if e_wk_pct == 0 else e.get("reset_time_5h", "--")
+        
+        self.gemini_5h_gauge.set_value(g_5h_pct, g_5h_time)
+        self.ext_5h_gauge.set_value(e_5h_pct, e_5h_time)
+        
+        self.gemini_wk_gauge.set_value(g_wk_pct, g.get("reset_time_weekly", "--"))
+        self.ext_wk_gauge.set_value(e_wk_pct, e.get("reset_time_weekly", "--"))
         
         history = history_logger.get_history(minutes=360)
         self.chart.render(history)
