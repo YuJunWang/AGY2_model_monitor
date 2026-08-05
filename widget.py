@@ -373,16 +373,16 @@ class UsageWidget:
         self.view_5h_frame.pack(fill=tk.X)
         self.view_5h_frame.pack_propagate(False)
         self.gemini_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=210, title="GEM", is_gemini=True, text_side="left")
-        self.gemini_5h_gauge.place(x=6, y=0)
+        self.gemini_5h_gauge.place(x=3, y=0)
         self.ext_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=210, title="EXT", is_gemini=False, text_side="right")
-        self.ext_5h_gauge.place(x=60, y=0)
+        self.ext_5h_gauge.place(x=63, y=0)
         
         self.view_wk_frame = tk.Frame(self.bars_frame, bg=BG_COLOR, height=210)
         self.view_wk_frame.pack_propagate(False)
         self.gemini_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=210, title="GEM", is_gemini=True, text_side="left")
-        self.gemini_wk_gauge.place(x=6, y=0)
+        self.gemini_wk_gauge.place(x=3, y=0)
         self.ext_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=210, title="EXT", is_gemini=False, text_side="right")
-        self.ext_wk_gauge.place(x=60, y=0)
+        self.ext_wk_gauge.place(x=63, y=0)
 
         # Vertical History Chart
         self.chart_frame = tk.Frame(self.main_frame, bg=SURFACE_COLOR, bd=0, highlightthickness=0)
