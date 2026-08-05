@@ -197,8 +197,8 @@ class VerticalHistoryChart(tk.Canvas):
         now = datetime.now()
         y_range = y_bottom - y_top
         
-        # Pixel-perfect grid mapping: 2px per row (1px line, 1px gap)
-        NUM_ROWS = int(y_range // 2)
+        # Pixel-perfect grid mapping: 1px per row (no vertical gap)
+        NUM_ROWS = int(y_range)
         bucket_duration_min = 360.0 / NUM_ROWS
         
         buckets = [] 
@@ -224,7 +224,7 @@ class VerticalHistoryChart(tk.Canvas):
         BLOCK_STEP = 3
         
         for idx, (g, e) in enumerate(buckets):
-            cy = int(y_top + (idx * 2))
+            cy = int(y_top + idx)
             
             # Draw Gemini Blocks (Gradient: Green -> Yellow)
             g_blocks = min(10, int(g / 0.5))
