@@ -18,10 +18,10 @@ import data_fetcher
 import history_logger
 
 TRANSPARENT_COLOR = "#000001"
-BG_COLOR       = "#020617" # Slate 950
-HEADER_COLOR   = "#0F172A" # Slate 900
-SURFACE_COLOR  = "#0F172A" # Slate 900
-TRACK_BG       = "#1E293B" # Slate 800
+BG_COLOR       = "#000000" # Pure Black
+HEADER_COLOR   = "#000000" # Pure Black
+SURFACE_COLOR  = "#000000" # Pure Black
+TRACK_BG       = "#111111" # Dark Neutral Grey
 TEXT_FG        = "#F8FAFC" # Slate 50
 TEXT_MUTED     = "#64748B" # Slate 500
 
