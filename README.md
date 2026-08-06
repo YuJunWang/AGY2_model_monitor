@@ -1,8 +1,10 @@
 # AGY Fuel Gauge 🚀
 
-AGY Fuel Gauge is a background telemetry widget that keeps your AI quotas visible without pulling you out of your flow state.
+**Simplicity is the ultimate sophistication.** While most telemetry tools bombard you with complex dashboards, bloated graphs, and endless configuration files, AGY Fuel Gauge does exactly one thing perfectly: it keeps your AI quotas visible without pulling you out of your flow state.
 
-The trick is surprisingly simple: Antigravity IDE already runs a local background daemon (`language_server.exe`) that handles all your token traffic. We eavesdrop on it. This widget hooks directly into that internal gRPC-Web API, giving you an accurate, real-time view of your Gemini and External model usage—no credentials required, no config files to maintain.
+A minimalist, zero-config widget that just works.
+
+The trick is surprisingly simple: Antigravity already runs a local background daemon (`language_server.exe`) that handles all your token traffic. We eavesdrop on it. This widget hooks directly into that internal gRPC-Web API, giving you an accurate, real-time view of your Gemini and External model usage—no credentials required, no bloated UI, no config files to maintain.
 
 <p align="center">
   <img src="./assets/widget_v4.2_5h.png" alt="Vertical Fuel Gauge 5H View" />
@@ -60,9 +62,11 @@ Restart your Antigravity IDE. A blue AGY icon should appear in your Windows syst
 
 # AGY Fuel Gauge（中文說明）🚀
 
-寫程式時若要隨時關注 AI 額度，頻繁切換視窗往往會打斷心流，這正是 AGY Fuel Gauge 誕生的原因。
+**把「極簡」發揮到極致。** 當現今大多數的監控工具都在向你轟炸複雜的數據看板、臃腫的圖表與無止盡的設定檔時，AGY Fuel Gauge 只專注於把一件事情做到完美：讓你能隨時瞥見 AI 剩餘額度，卻絕不打斷你的心流。
 
-做法其實很直觀：既然 Antigravity IDE 已經在你的電腦裡跑了一支負責通訊的背景精靈（`language_server.exe`），我們直接在它的內部通道（gRPC-Web）上「旁聽」就好。不需要你的帳號憑證，也不需要維護任何設定檔，安裝好就能在背景持續回報 Gemini 與外部模型的即時用量。
+這是一款主打零設定、沒有多餘視覺負擔的極簡小工具。
+
+做法其實很直觀：既然 Antigravity 已經在你的電腦裡跑了一支負責通訊的背景精靈（`language_server.exe`），我們直接在它的內部通道（gRPC-Web）上「旁聽」就好。不需要帳號憑證，不需要臃腫的介面，更不需要維護任何設定檔，安裝好就能在背景安靜地回報即時用量。
 
 ## ✨ 它是怎麼運作的？
 
