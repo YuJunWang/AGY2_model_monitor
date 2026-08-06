@@ -50,6 +50,7 @@ def rgb_to_hex(rgb):
     return '#{:02x}{:02x}{:02x}'.format(int(rgb[0]), int(rgb[1]), int(rgb[2]))
 
 def interpolate_color(start_hex, end_hex, factor):
+    factor = max(0.0, min(1.0, factor))  # clamp to [0, 1]
     c1 = hex_to_rgb(start_hex)
     c2 = hex_to_rgb(end_hex)
     r = c1[0] + (c2[0] - c1[0]) * factor
@@ -227,27 +228,27 @@ class VerticalHistoryChart(tk.Canvas):
             cy = int(y_top + idx)
             h_rect = cy + 1
             
-            # Draw Gemini Blocks (Gradient: Green -> Yellow)
+            # Draw Gemini Blocks — color intensity based on total drop (not block position)
             g_blocks = min(10, int(g / 0.5))
             is_g_overflow = (g >= 5.0)
+            g_factor = min(g / 5.0, 1.0)  # 0=safe green, 1=peak yellow
+            g_color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", g_factor)
+            if is_g_overflow: g_color = highlight_rgb(g_color, 1.5, 80)
             for b in range(g_blocks):
                 x_right = mid_x - 3 - (b * BLOCK_STEP)
                 x_left = x_right - 2
-                factor = b / 9.0
-                color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", factor)
-                if is_g_overflow: color = highlight_rgb(color, 1.5, 80)
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=g_color)
                 
-            # Draw External Blocks (Gradient: Orange -> Red)
+            # Draw External Blocks — color intensity based on total drop (not block position)
             e_blocks = min(10, int(e / 0.5))
             is_e_overflow = (e >= 5.0)
+            e_factor = min(e / 5.0, 1.0)  # 0=safe orange, 1=peak red
+            e_color = interpolate_color(COLOR_EXT_SAFE, "#E11D48", e_factor)
+            if is_e_overflow: e_color = highlight_rgb(e_color, 1.5, 80)
             for b in range(e_blocks):
                 x_left = mid_x + 3 + (b * BLOCK_STEP)
                 x_right = x_left + 2
-                factor = b / 9.0
-                color = interpolate_color(COLOR_EXT_SAFE, "#E11D48", factor)
-                if is_e_overflow: color = highlight_rgb(color, 1.5, 80)
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=e_color)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
@@ -426,7 +427,7 @@ class UsageWidget:
         except Exception:
             img = Image.new('RGBA', (64, 64), (0, 0, 0, 0))
             dc = ImageDraw.Draw(img)
-            dc.ellipse([8, 8, 56, 56], fill=COLOR_GEMINI)
+            dc.ellipse([8, 8, 56, 56], fill=COLOR_GEM_SAFE)
             return img
 
     def setup_tray(self):
@@ -502,28 +503,18 @@ class UsageWidget:
         self.play_scanline_animation()
 
     def play_scanline_animation(self):
-        # Create a scanning line on the main frame overlay
-        # Since tk.Frame doesn't support drawing, we will create a temporary canvas that covers the main_frame
-        scan_cv = tk.Canvas(self.main_frame, width=110, height=self.base_height, bg=BG_COLOR, highlightthickness=0)
-        # Use transparent color trick for the canvas background so we only see the line
-        scan_cv.place(x=0, y=0)
-        scan_cv.config(bg=TRANSPARENT_COLOR)
+        # Subtle scanline sweeping across the chart area on each data refresh.
+        # Kept intentionally low-key: thin white line, fast sweep, short duration.
+        scan_line = self.chart.create_line(0, 0, self.chart.width, 0, fill="#FFFFFF", width=1)
         
-        # But wait, we didn't set transparentcolor on root anymore! We used SetWindowRgn.
-        # If we place a canvas over everything, it will hide widgets unless it's genuinely transparent (which tk Canvas isn't on Windows without SetLayeredWindowAttributes which affects the whole window).
-        # A better approach: We have `bars_frame` and `chart_frame`. We can just draw a moving line on the chart canvas since it's the biggest data area.
-        scan_cv.place_forget()
-        
-        # Draw on chart canvas instead
-        scan_line = self.chart.create_line(0, 0, self.chart.width, 0, fill=COLOR_GEM_SAFE, width=2)
-        
+        STEPS = 12
         def animate(step=0):
-            if step > 20:
+            if step > STEPS:
                 self.chart.delete(scan_line)
                 return
-            y = (step / 20.0) * self.chart.height
+            y = (step / STEPS) * self.chart.height
             self.chart.coords(scan_line, 0, y, self.chart.width, y)
-            self.root.after(40, lambda: animate(step+1))
+            self.root.after(30, lambda: animate(step + 1))
             
         animate(0)
 
