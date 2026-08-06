@@ -65,6 +65,13 @@ def highlight_rgb(hex_str, multiplier=1.5, add_white=50):
     b = min(255, int(b * multiplier + add_white))
     return rgb_to_hex((r, g, b))
 
+def deepen_rgb(hex_str, multiplier=0.7):
+    r, g, b = hex_to_rgb(hex_str)
+    r = max(0, min(255, int(r * multiplier)))
+    g = max(0, min(255, int(g * multiplier)))
+    b = max(0, min(255, int(b * multiplier)))
+    return rgb_to_hex((r, g, b))
+
 
 class VerticalFuelGauge(tk.Canvas):
     def __init__(self, parent, width=44, height=200, title="Title", is_gemini=True, text_side="right", **kwargs):
@@ -237,9 +244,10 @@ class VerticalHistoryChart(tk.Canvas):
                 x_left = x_right - 2
                 pos_factor = b / max(g_blocks - 1, 1)  # 0=innermost, 1=outermost
                 factor = pos_factor * g_intensity
-                color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", factor)
-                # Saturated neon highlight on overflow, no washing out with white
-                if is_g_overflow: color = highlight_rgb(color, 1.3, 15)
+                # GEM Gradient: Green (#22C55E) -> Red (#EF4444)
+                color = interpolate_color(COLOR_GEM_SAFE, "#EF4444", factor)
+                # If overflow, deepen the color to make it richer/more warning-like
+                if is_g_overflow: color = deepen_rgb(color, 0.7)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
             # Draw External Blocks — hybrid gradient: direction from position, depth from intensity
@@ -251,10 +259,10 @@ class VerticalHistoryChart(tk.Canvas):
                 x_right = x_left + 2
                 pos_factor = b / max(e_blocks - 1, 1)
                 factor = pos_factor * e_intensity
-                # Start from Amber (#F59E0B) to provide distinct gold-to-red contrast on short bars
-                color = interpolate_color("#F59E0B", "#E11D48", factor)
-                # Saturated neon highlight on overflow, no washing out with white
-                if is_e_overflow: color = highlight_rgb(color, 1.3, 15)
+                # EXT Gradient: Orange (#F97316) -> Blue (#2563EB)
+                color = interpolate_color(COLOR_EXT_SAFE, "#2563EB", factor)
+                # If overflow, deepen the color to make it richer/more warning-like
+                if is_e_overflow: color = deepen_rgb(color, 0.7)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
         gem_total = sum(g for g, e in buckets)
