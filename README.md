@@ -17,7 +17,7 @@ The trick is surprisingly simple: Antigravity already runs a local background da
 - **Zero Auth Setup**: The widget scans for your active `language_server.exe` process to dynamically locate its listening port, then reads the `x-codeium-csrf-token` straight from the startup logs. Nothing to configure.
 - **Cyber-Stick UI**: An irregular L-shaped floating glass interface with vertical fluid gauges designed for OLED black backgrounds. Uses native Windows GDI region APIs (`SetWindowRgn`) for a frameless, perfectly rounded asymmetrical shape.
 - **Pixel-Perfect Equalizer Chart**: The history chart is rendered as a pixel-perfect, zero-gap equalizer. Each data row is perfectly mapped to exactly 1 pixel, capturing 3-minute increments with absolute precision.
-- **Overdrive Gradient System**: The history equalizer features a dynamic RGB color interpolation engine. Gemini (Green → Yellow) and External (Orange → Red) colors shift smoothly based on usage intensity. If consumption exceeds the physical scale (5.0%), the row engages "Overdrive mode"—glowing with intense, overexposed neon highlights.
+- **Overdrive Gradient System**: The history equalizer features a dynamic RGB color interpolation engine. Gemini (Green → Yellow → Red) and External (Orange → Purple → Blue) colors shift smoothly based on usage intensity. If consumption exceeds the physical scale (5.0%), the row engages "Overdrive mode"—deepening to a highly saturated, warning-toned hue.
 - **Micro-Animations**: A subtle green scanline sweeps across the data panel during background syncs, confirming telemetry without breaking your flow.
 
 ## 💻 Compatibility
@@ -56,7 +56,7 @@ The trick is surprisingly simple: Antigravity already runs a local background da
       }
       ```
 
-Restart your Antigravity IDE. A blue AGY icon should appear in your Windows system tray. (The `✕` button hides it to the tray and keeps logging in the background; right-click the icon to bring it back.)
+Restart your Antigravity IDE. A circular AGY fuel gauge icon should appear in your Windows system tray. (The `✕` button hides it to the tray and keeps logging in the background; right-click the icon to bring it back.)
 
 ---
 
@@ -73,7 +73,7 @@ Restart your Antigravity IDE. A blue AGY icon should appear in your Windows syst
 - **自動找 Port 與 Token**：程式會找到 `language_server.exe` 的進程來定位目前監聽的 Port，並從啟動日誌直接取出 `x-codeium-csrf-token`。你什麼都不用設定。
 - **Cyber-Stick 賽博龐克介面**：採用不規則 L 型的懸浮玻璃面板與垂直能量條設計。底層呼叫 Windows 原生 GDI Region API，實現無邊框且具有完美不對稱圓角的幾何外觀。
 - **像素級無縫等化器 (Pixel-Perfect Equalizer)**：下方的歷史消耗圖表採用了像素級渲染引擎。每 3 分鐘一筆的資料被精準映射到絕對的 1 像素高度，徹底消除了任何 Sub-pixel 渲染導致的粗細不一，呈現出完美均勻且連續的等化器視覺。
-- **過載發光漸層 (Overdrive Gradient)**：等化器內建動態 RGB 色彩內插引擎，Gemini 側從底部「賽博綠」漸變至頂峰「警告黃」，EXT 側則由「活力橘」漸變至「玫瑰紅」。當單次消耗突破物理刻度上限（5.0%）時，整排等化器會瞬間切換成「過載發光模式」，注入高亮度白光營造霓虹燈過載般的視覺衝擊。
+- **過載發光漸層 (Overdrive Gradient)**：等化器內建動態 RGB 三節點色彩內插引擎，Gemini 側由「賽博綠 → 警告黃 → 警示紅」，EXT 側由「活力橘 → 宇宙紫 → 鈷藍」。當單次消耗突破物理刻度上限（5.0%）時，整排等化器會瞬間切換成「過載模式」，自動加深飽和度，呈現出極具警告氣息的深色霓虹感。
 - **掃描線微動畫**：每當背景成功抓取新資料時，圖表區會低調地掃過一條微光掃描線，提供「系統正在運作」的明確動態回饋，同時絕不干擾你的寫程式心流。
 
 ## 💻 支援環境
@@ -112,4 +112,4 @@ Restart your Antigravity IDE. A blue AGY icon should appear in your Windows syst
       }
       ```
 
-重新啟動 Antigravity IDE 後，右下角的 Windows 系統匣應該就會出現藍色的 AGY 小圖示。按右上角的 `✕` 只是把它收進系統匣繼續背景記錄，對著圖示點右鍵就可以再次喚醒它。
+重新啟動 Antigravity IDE 後，右下角的 Windows 系統匣應該就會出現圓形的 AGY 儀表板小圖示。按右上角的 `✕` 只是把它收進系統匣繼續背景記錄，對著圖示點右鍵就可以再次喚醒它。
