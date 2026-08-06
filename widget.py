@@ -58,6 +58,14 @@ def interpolate_color(start_hex, end_hex, factor):
     b = c1[2] + (c2[2] - c1[2]) * factor
     return rgb_to_hex((r, g, b))
 
+def interpolate_color_3(c_low, c_mid, c_high, factor):
+    """3-keyframe gradient: factor 0.0->0.5 goes c_low->c_mid, 0.5->1.0 goes c_mid->c_high."""
+    factor = max(0.0, min(1.0, factor))
+    if factor <= 0.5:
+        return interpolate_color(c_low, c_mid, factor * 2.0)
+    else:
+        return interpolate_color(c_mid, c_high, (factor - 0.5) * 2.0)
+
 def highlight_rgb(hex_str, multiplier=1.5, add_white=50):
     r, g, b = hex_to_rgb(hex_str)
     r = min(255, int(r * multiplier + add_white))
@@ -163,7 +171,7 @@ class VerticalFuelGauge(tk.Canvas):
 
 class VerticalHistoryChart(tk.Canvas):
     def __init__(self, parent, width=100, height=140, **kwargs):
-        super().__init__(parent, width=width, height=height, bg=SURFACE_COLOR, highlightthickness=0, **kwargs)
+        super().__init__(parent, width=width, height=height, bg="#000000", highlightthickness=0, **kwargs)
         self.width = width
         self.height = height
         
@@ -235,22 +243,20 @@ class VerticalHistoryChart(tk.Canvas):
             cy = int(y_top + idx)
             h_rect = cy + 1
             
-            # Draw Gemini Blocks — hybrid gradient: direction from position, depth from intensity
+            # Draw Gemini Blocks — 3-point gradient: Green -> Yellow -> Red
             g_blocks = min(10, int(g / 0.5))
             is_g_overflow = (g >= 5.0)
-            g_intensity = min(g / 5.0, 1.0)  # how far towards peak the gradient can reach
+            g_intensity = min(g / 5.0, 1.0)
             for b in range(g_blocks):
                 x_right = mid_x - 3 - (b * BLOCK_STEP)
                 x_left = x_right - 2
-                pos_factor = b / max(g_blocks - 1, 1)  # 0=innermost, 1=outermost
+                pos_factor = b / max(g_blocks - 1, 1)
                 factor = pos_factor * g_intensity
-                # GEM Gradient: Green (#22C55E) -> Red (#EF4444)
-                color = interpolate_color(COLOR_GEM_SAFE, "#EF4444", factor)
-                # If overflow, deepen the color to make it richer/more warning-like
+                color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", factor)
                 if is_g_overflow: color = deepen_rgb(color, 0.7)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
-            # Draw External Blocks — hybrid gradient: direction from position, depth from intensity
+            # Draw External Blocks — 3-point gradient: Orange -> Purple -> Blue
             e_blocks = min(10, int(e / 0.5))
             is_e_overflow = (e >= 5.0)
             e_intensity = min(e / 5.0, 1.0)
@@ -259,9 +265,7 @@ class VerticalHistoryChart(tk.Canvas):
                 x_right = x_left + 2
                 pos_factor = b / max(e_blocks - 1, 1)
                 factor = pos_factor * e_intensity
-                # EXT Gradient: Orange (#F97316) -> Blue (#2563EB)
-                color = interpolate_color(COLOR_EXT_SAFE, "#2563EB", factor)
-                # If overflow, deepen the color to make it richer/more warning-like
+                color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", factor)
                 if is_e_overflow: color = deepen_rgb(color, 0.7)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
