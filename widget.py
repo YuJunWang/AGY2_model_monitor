@@ -250,7 +250,8 @@ class VerticalHistoryChart(tk.Canvas):
                 x_right = x_left + 2
                 pos_factor = b / max(e_blocks - 1, 1)
                 factor = pos_factor * e_intensity
-                color = interpolate_color(COLOR_EXT_SAFE, "#E11D48", factor)
+                # Start from Amber (#F59E0B) to provide distinct gold-to-red contrast on short bars
+                color = interpolate_color("#F59E0B", "#E11D48", factor)
                 if is_e_overflow: color = highlight_rgb(color, 1.5, 80)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
