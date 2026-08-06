@@ -238,7 +238,8 @@ class VerticalHistoryChart(tk.Canvas):
                 pos_factor = b / max(g_blocks - 1, 1)  # 0=innermost, 1=outermost
                 factor = pos_factor * g_intensity
                 color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", factor)
-                if is_g_overflow: color = highlight_rgb(color, 1.5, 80)
+                # Saturated neon highlight on overflow, no washing out with white
+                if is_g_overflow: color = highlight_rgb(color, 1.3, 15)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
             # Draw External Blocks — hybrid gradient: direction from position, depth from intensity
@@ -252,7 +253,8 @@ class VerticalHistoryChart(tk.Canvas):
                 factor = pos_factor * e_intensity
                 # Start from Amber (#F59E0B) to provide distinct gold-to-red contrast on short bars
                 color = interpolate_color("#F59E0B", "#E11D48", factor)
-                if is_e_overflow: color = highlight_rgb(color, 1.5, 80)
+                # Saturated neon highlight on overflow, no washing out with white
+                if is_e_overflow: color = highlight_rgb(color, 1.3, 15)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
         gem_total = sum(g for g, e in buckets)
