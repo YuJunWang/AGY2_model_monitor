@@ -228,27 +228,31 @@ class VerticalHistoryChart(tk.Canvas):
             cy = int(y_top + idx)
             h_rect = cy + 1
             
-            # Draw Gemini Blocks — color intensity based on total drop (not block position)
+            # Draw Gemini Blocks — hybrid gradient: direction from position, depth from intensity
             g_blocks = min(10, int(g / 0.5))
             is_g_overflow = (g >= 5.0)
-            g_factor = min(g / 5.0, 1.0)  # 0=safe green, 1=peak yellow
-            g_color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", g_factor)
-            if is_g_overflow: g_color = highlight_rgb(g_color, 1.5, 80)
+            g_intensity = min(g / 5.0, 1.0)  # how far towards peak the gradient can reach
             for b in range(g_blocks):
                 x_right = mid_x - 3 - (b * BLOCK_STEP)
                 x_left = x_right - 2
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=g_color)
+                pos_factor = b / max(g_blocks - 1, 1)  # 0=innermost, 1=outermost
+                factor = pos_factor * g_intensity
+                color = interpolate_color(COLOR_GEM_SAFE, "#EAB308", factor)
+                if is_g_overflow: color = highlight_rgb(color, 1.5, 80)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
-            # Draw External Blocks — color intensity based on total drop (not block position)
+            # Draw External Blocks — hybrid gradient: direction from position, depth from intensity
             e_blocks = min(10, int(e / 0.5))
             is_e_overflow = (e >= 5.0)
-            e_factor = min(e / 5.0, 1.0)  # 0=safe orange, 1=peak red
-            e_color = interpolate_color(COLOR_EXT_SAFE, "#E11D48", e_factor)
-            if is_e_overflow: e_color = highlight_rgb(e_color, 1.5, 80)
+            e_intensity = min(e / 5.0, 1.0)
             for b in range(e_blocks):
                 x_left = mid_x + 3 + (b * BLOCK_STEP)
                 x_right = x_left + 2
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=e_color)
+                pos_factor = b / max(e_blocks - 1, 1)
+                factor = pos_factor * e_intensity
+                color = interpolate_color(COLOR_EXT_SAFE, "#E11D48", factor)
+                if is_e_overflow: color = highlight_rgb(color, 1.5, 80)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
@@ -504,17 +508,17 @@ class UsageWidget:
 
     def play_scanline_animation(self):
         # Subtle scanline sweeping across the chart area on each data refresh.
-        # Kept intentionally low-key: thin white line, fast sweep, short duration.
-        scan_line = self.chart.create_line(0, 0, self.chart.width, 0, fill="#FFFFFF", width=1)
+        # Thin neon-white-green line, 800ms sweep duration.
+        scan_line = self.chart.create_line(0, 0, self.chart.width, 0, fill="#AEFFD6", width=1)
         
-        STEPS = 12
+        STEPS = 20
         def animate(step=0):
             if step > STEPS:
                 self.chart.delete(scan_line)
                 return
             y = (step / STEPS) * self.chart.height
             self.chart.coords(scan_line, 0, y, self.chart.width, y)
-            self.root.after(30, lambda: animate(step + 1))
+            self.root.after(40, lambda: animate(step + 1))
             
         animate(0)
 
