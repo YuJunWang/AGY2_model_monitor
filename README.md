@@ -18,11 +18,11 @@ The trick is surprisingly simple: Antigravity already runs a local background da
 
 ## ✨ How it actually works
 
-- **Zero Auth Setup**: The widget scans for your active `language_server.exe` process to dynamically locate its listening port, then reads the `x-codeium-csrf-token` straight from the startup logs. Nothing to configure.
-- **Cyber-Stick UI**: An irregular L-shaped floating glass interface with vertical fluid gauges designed for OLED black backgrounds. Uses native Windows GDI region APIs (`SetWindowRgn`) for a frameless, perfectly rounded asymmetrical shape.
-- **Pixel-Perfect Equalizer Chart**: The history chart is rendered as a pixel-perfect, zero-gap equalizer. Each data row is perfectly mapped to exactly 1 pixel, capturing 3-minute increments with absolute precision.
-- **Overdrive Gradient System**: The history equalizer features a dynamic RGB color interpolation engine. Gemini (Green → Yellow → Red) and External (Orange → Purple → Blue) colors shift smoothly based on usage intensity. If consumption exceeds the physical scale (5.0%), the row engages "Overdrive mode"—deepening to a highly saturated, warning-toned hue.
-- **Micro-Animations**: A subtle green scanline sweeps across the data panel during background syncs, confirming telemetry without breaking your flow.
+- **Zero Auth API Hook**: Dynamically scans for the active `language_server.exe` process to extract its listening port and `x-codeium-csrf-token` from startup logs, hooking directly into the internal gRPC-Web API.
+- **GDI Frameless UI**: Uses native Windows GDI region APIs (`SetWindowRgn`) to render an irregular L-shaped, frameless window with an absolute black background.
+- **Pixel-Perfect Rendering**: The history chart maps each 3-minute data row exactly to a 1-pixel height, rendering a zero-gap equalizer.
+- **Dynamic RGB Interpolation**: Implements a 3-keyframe gradient system (GEM: Green → Yellow → Red, EXT: Orange → Purple → Blue) based on usage intensity. Uses a `deepen_rgb` multiplier for values exceeding the physical scale (5.0%).
+- **Async Telemetry Sync**: A background thread polls the API without blocking the UI, indicated by a subtle 800ms scanline animation.
 
 ## 💻 Compatibility
 - **Antigravity 2.0 (Desktop App)**: 100% supported — run it as a Sidecar.
@@ -74,11 +74,11 @@ Restart your Antigravity IDE. A circular AGY fuel gauge icon should appear in yo
 
 ## ✨ 它是怎麼運作的？
 
-- **自動找 Port 與 Token**：程式會找到 `language_server.exe` 的進程來定位目前監聽的 Port，並從啟動日誌直接取出 `x-codeium-csrf-token`。你什麼都不用設定。
-- **Cyber-Stick 賽博龐克介面**：採用不規則 L 型的懸浮玻璃面板與垂直能量條設計。底層呼叫 Windows 原生 GDI Region API，實現無邊框且具有完美不對稱圓角的幾何外觀。
-- **像素級無縫等化器 (Pixel-Perfect Equalizer)**：下方的歷史消耗圖表採用了像素級渲染引擎。每 3 分鐘一筆的資料被精準映射到絕對的 1 像素高度，徹底消除了任何 Sub-pixel 渲染導致的粗細不一，呈現出完美均勻且連續的等化器視覺。
-- **過載發光漸層 (Overdrive Gradient)**：等化器內建動態 RGB 三節點色彩內插引擎，Gemini 側由「賽博綠 → 警告黃 → 警示紅」，EXT 側由「活力橘 → 宇宙紫 → 鈷藍」。當單次消耗突破物理刻度上限（5.0%）時，整排等化器會瞬間切換成「過載模式」，自動加深飽和度，呈現出極具警告氣息的深色霓虹感。
-- **掃描線微動畫**：每當背景成功抓取新資料時，圖表區會低調地掃過一條微光掃描線，提供「系統正在運作」的明確動態回饋，同時絕不干擾你的寫程式心流。
+- **API 自動掛載 (Zero Auth Hook)**：動態掃描 `language_server.exe` 進程以取得監聽 Port，並從日誌萃取 `x-codeium-csrf-token`，直接接入內部 gRPC-Web API。
+- **GDI 無邊框渲染 (Frameless UI)**：底層呼叫 Windows 原生 GDI Region API (`SetWindowRgn`)，實現不規則 L 型、無邊框且純黑背景的幾何視窗。
+- **像素級等化器 (Pixel-Perfect Chart)**：歷史圖表將每 3 分鐘的數據精準映射至 1 像素高度，無縫渲染零間距的等化器視覺。
+- **動態 RGB 插值 (Dynamic Interpolation)**：內建三節點漸層引擎（GEM：綠 → 黃 → 紅；EXT：橘 → 紫 → 藍）。當消耗量突破物理刻度（5.0%）時，會觸發 `deepen_rgb` 降亮度、提純度的過載演算法。
+- **非同步資料同步 (Async Telemetry)**：使用背景執行緒抓取數據確保 UI 不阻塞，同步時會在資料面板觸發 800ms 的平滑掃描線動畫。
 
 ## 💻 支援環境
 - **Antigravity 2.0（桌面版）**：100% 支援，建議搭配 Sidecar 機制使用。
