@@ -246,41 +246,65 @@ class VerticalHistoryChart(tk.Canvas):
             
         self.buckets = buckets
         
+        # ABSOLUTE FIXED SCALE: 1.0% per full block, 0.5% per half block. Max 10 blocks = 10.0%
+        # Block rendering: 2px wide (full) or 1px wide (half), 1px gap -> Step is 3px
+        BLOCK_STEP = 3
+        mid_x = int(self.width / 2)
+        
         for idx, (g, e) in enumerate(buckets):
             cy = int(self.y_top + idx * 2)
+            # Use cy + 4 to aggressively overlap the vertical drawing.
+            # This guarantees no vertical gaps regardless of Windows DPI subpixel rounding,
+            # while outline="" preserves the exact horizontal segmented gaps.
+            h_rect = cy + 4
             
             # ── GEMINI Blocks ──
             g_capped = min(10.0, g)
-            g_width = int(g_capped * 3) # Max 30px
-            g_intensity = g_capped / 10.0
+            g_full = int(g_capped // 1.0)
+            g_half = 1 if (g_capped % 1.0) >= 0.5 else 0
+            g_total = g_full + g_half
+            is_g_overflow = (g >= 10.0)
+            g_intensity = min(g / 10.0, 1.0)
             
-            if g_width > 0:
-                base_color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", g_intensity)
-                if g >= 10.0:
-                    color = highlight_rgb(base_color, 1.2, 20)
-                else:
+            for b in range(g_total):
+                x_right = mid_x - 2 - (b * BLOCK_STEP)
+                is_half = (b == g_full) # Only the last block is half (if any)
+                x_left = x_right - (1 if is_half else 2)
+                
+                pos_factor = b / max(g_total - 1, 1)
+                factor = pos_factor * g_intensity
+                base_color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", factor)
+                
+                if not is_g_overflow:
                     color = deepen_rgb(base_color, 0.5)
+                else:
+                    color = highlight_rgb(base_color, 1.2, 20)
                     
-                x_right = mid_x - 2
-                x_left = x_right - g_width
-                # Draw solid contiguous block, using outline=color to avoid anti-aliasing gaps
-                self.create_rectangle(x_left, cy, x_right, cy + 1, outline=color, fill=color)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
             # ── EXTERNAL Blocks ──
             e_capped = min(10.0, e)
-            e_width = int(e_capped * 3) # Max 30px
-            e_intensity = e_capped / 10.0
+            e_full = int(e_capped // 1.0)
+            e_half = 1 if (e_capped % 1.0) >= 0.5 else 0
+            e_total = e_full + e_half
+            is_e_overflow = (e >= 10.0)
+            e_intensity = min(e / 10.0, 1.0)
             
-            if e_width > 0:
-                base_color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", e_intensity)
-                if e >= 10.0:
-                    color = highlight_rgb(base_color, 1.2, 20)
-                else:
+            for b in range(e_total):
+                x_left = mid_x + 3 + (b * BLOCK_STEP)
+                is_half = (b == e_full)
+                x_right = x_left + (1 if is_half else 2)
+                
+                pos_factor = b / max(e_total - 1, 1)
+                factor = pos_factor * e_intensity
+                base_color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", factor)
+                
+                if not is_e_overflow:
                     color = deepen_rgb(base_color, 0.5)
+                else:
+                    color = highlight_rgb(base_color, 1.2, 20)
                     
-                x_left = mid_x + 3
-                x_right = x_left + e_width
-                self.create_rectangle(x_left, cy, x_right, cy + 1, outline=color, fill=color)
+                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
