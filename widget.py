@@ -330,31 +330,26 @@ class VerticalHistoryChart(tk.Canvas):
             g, e = self.buckets[idx]
             if g == 0 and e == 0:
                 return
-                
-            text = f"G: {g:.1f}% | E: {e:.1f}%"
+
+            # Direction 3: Subtle row highlight band
+            self.create_rectangle(0, y - 1, self.width, y + 2, fill="#1E293B", outline="", tags="tooltip")
             
-            # Draw a faint horizontal tracking line across the chart
-            self.create_line(0, y, self.width, y, fill="#334155", dash=(1, 2), tags="tooltip")
+            # Crosshair line (rendered on top of the highlight band)
+            self.create_line(0, y, self.width, y, fill="#475569", dash=(1, 2), tags="tooltip")
             
-            # Interactive evasion: shift text away from the cursor
-            mid_x = self.width / 2
-            if event.x < mid_x:
-                text_x = self.width - 2
-                anchor_val = "e"
-            else:
-                text_x = 2
-                anchor_val = "w"
-                
-            text_y = y
-            # Keep it within vertical bounds so background doesn't clip
-            if text_y < self.y_top + 6: text_y = self.y_top + 6
-            if text_y > self.y_bottom - 6: text_y = self.y_bottom - 6
+            # Clamp text_y within vertical bounds
+            text_y = max(self.y_top + 6, min(self.y_bottom - 6, y))
             
-            t = self.create_text(text_x, text_y, text=text, fill="#E2E8F0", font=("Segoe UI", 7, "bold"), anchor=anchor_val, tags="tooltip")
-            bbox = self.bbox(t)
-            if bbox:
-                bg = self.create_rectangle(bbox[0]-3, bbox[1]-1, bbox[2]+3, bbox[3]+1, fill="#0F172A", outline="#475569", tags="tooltip")
-                self.tag_lower(bg, t)
+            # Direction 1: Split labels — G fixed left (green), E fixed right (orange)
+            for text, color, x, anchor_val in [
+                (f"G {g:.1f}%", COLOR_GEM_SAFE, 2, "w"),
+                (f"E {e:.1f}%", COLOR_EXT_SAFE, self.width - 2, "e"),
+            ]:
+                lbl = self.create_text(x, text_y, text=text, fill=color, font=("Segoe UI", 7, "bold"), anchor=anchor_val, tags="tooltip")
+                bbox = self.bbox(lbl)
+                if bbox:
+                    bg = self.create_rectangle(bbox[0]-2, bbox[1]-1, bbox[2]+2, bbox[3]+1, fill="#0F172A", outline="", tags="tooltip")
+                    self.tag_lower(bg, lbl)
 
     def on_mouse_leave(self, event):
         self.delete("tooltip")
