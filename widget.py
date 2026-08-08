@@ -253,10 +253,10 @@ class VerticalHistoryChart(tk.Canvas):
         
         for idx, (g, e) in enumerate(buckets):
             cy = int(self.y_top + idx * 2)
-            # Use cy + 4 to aggressively overlap the vertical drawing.
-            # This guarantees no vertical gaps regardless of Windows DPI subpixel rounding,
-            # while outline="" preserves the exact horizontal segmented gaps.
-            h_rect = cy + 4
+            # Use cy + 2 to perfectly match the 2px bucket stride.
+            # This ensures contiguous drawing without overlapping into adjacent data points,
+            # preventing both gaps and distorted visual overlaps.
+            h_rect = cy + 2
             
             # ── GEMINI Blocks ──
             g_capped = min(10.0, g)
