@@ -9,11 +9,7 @@ The trick is surprisingly simple: Antigravity already runs a local background da
 <p align="center">
   <img src="./assets/widget_v5_5h.png" alt="Vertical Fuel Gauge 5H View" />
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./assets/widget_v5_state3.png" alt="Vertical Fuel Gauge 5H High Usage" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./assets/widget_v5_wk.png" alt="Vertical Fuel Gauge Weekly View" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./assets/widget_v5_state4.png" alt="Vertical Fuel Gauge Weekly High Usage" />
 </p>
 
 ## ✨ How it actually works
