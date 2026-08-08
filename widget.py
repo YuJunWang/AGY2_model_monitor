@@ -6,7 +6,7 @@ import tkinter as tk
 import ctypes
 from datetime import datetime, timedelta
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk
 import math
 import random
 
@@ -259,6 +259,12 @@ class VerticalHistoryChart(tk.Canvas):
         # Block rendering: 2px wide (full) or 1px wide (half), 1px gap -> Step is 3px
         BLOCK_STEP = 3
         mid_x = int(self.width / 2)
+        # Clear previous PIL image
+        self.delete("chart_img")
+        
+        # Create a pixel-perfect bitmap buffer using PIL to completely bypass Tkinter/DWM floating-point subpixel rounding gaps
+        img = Image.new("RGBA", (self.width, self.height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
         
         for idx, (g, e) in enumerate(buckets):
             cy = int(self.y_top + idx * 3)
@@ -285,9 +291,8 @@ class VerticalHistoryChart(tk.Canvas):
                 else:
                     color = highlight_rgb(base_color, 1.2, 20)
                     
-                # Use create_line with width=2 to guarantee native 2px height rendering without DPI gaps.
-                # create_line is inclusive on coordinates, so we draw to x_right - 1 to maintain the 1px gap.
-                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=3)
+                # PIL rectangle [x0, y0, x1, y1] is fully inclusive. cy to cy+2 strictly covers 3 pixels.
+                draw.rectangle([x_left, cy, x_right - 1, cy + 2], fill=color)
                 
             # ── EXTERNAL Blocks ──
             e_capped = min(10.0, e)
@@ -311,8 +316,13 @@ class VerticalHistoryChart(tk.Canvas):
                 else:
                     color = highlight_rgb(base_color, 1.2, 20)
                     
-                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=3)
+                draw.rectangle([x_left, cy, x_right - 1, cy + 2], fill=color)
             
+        # Stamp the perfectly rendered pixel buffer onto the Tkinter canvas
+        self.chart_tk_img = ImageTk.PhotoImage(img)
+        self.create_image(0, 0, anchor="nw", image=self.chart_tk_img, tags="chart_img")
+        self.tag_lower("chart_img")
+        
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
         gem_hourly = gem_total / 5.0
@@ -714,5 +724,6 @@ class UsageWidget:
 if __name__ == "__main__":
     app = UsageWidget()
     app.run()
+
 
 
