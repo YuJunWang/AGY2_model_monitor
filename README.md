@@ -6,6 +6,10 @@ Most telemetry tools introduce unnecessary cognitive load with complex dashboard
   <img src="./assets/widget_v5_5h.png" alt="Vertical Fuel Gauge 5H View" />
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./assets/widget_v5_wk.png" alt="Vertical Fuel Gauge Weekly View" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./assets/widget_v6_5h.png" alt="Vertical Fuel Gauge 5H Hover View" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./assets/widget_v6_wk.png" alt="Vertical Fuel Gauge Weekly Hover View" />
 </p>
 
 ## Tech Specs
