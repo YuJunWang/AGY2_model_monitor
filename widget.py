@@ -293,7 +293,7 @@ class SlidingToggle(tk.Canvas):
         
         # Draw pill background (using an oval left, oval right, and rectangle in middle)
         self.bg_color_off = "#333842"
-        self.bg_color_on = "#7C3AED" # Cyberpunk purple when toggled (WK mode)
+        self.bg_color_on = "#3A4B6B" # Muted blue-grey, less prominent
         self.create_oval(0, 0, 16, 16, fill=self.bg_color_off, outline="", tags="bg")
         self.create_oval(16, 0, 32, 16, fill=self.bg_color_off, outline="", tags="bg")
         self.create_rectangle(8, 0, 24, 16, fill=self.bg_color_off, outline="", tags="bg")
@@ -602,8 +602,8 @@ class UsageWidget:
             x_segments = [0, self.chart.width * 0.3, self.chart.width * 0.6, self.chart.width]
             
             for x in x_segments:
-                # Reduced jitter magnitude to make the creases more subtle
-                jitter = random.randint(-1, 1) if step > 0 and step < STEPS else 0
+                # Balanced jitter magnitude for visible but subtle creases
+                jitter = random.randint(-2, 2) if step > 0 and step < STEPS else 0
                 y = max(0, min(self.chart.height, base_y + jitter))
                 coords.extend([x, y])
             
