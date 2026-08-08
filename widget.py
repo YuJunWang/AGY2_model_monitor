@@ -175,6 +175,12 @@ class VerticalHistoryChart(tk.Canvas):
         super().__init__(parent, width=width, height=height, bg="#000000", highlightthickness=0, **kwargs)
         self.width = width
         self.height = height
+        self.buckets = []
+        self.y_top = 10
+        self.y_bottom = height - 15
+        
+        self.bind("<Motion>", self.on_mouse_move)
+        self.bind("<Leave>", self.on_mouse_leave)
         
     def render(self, history):
         self.delete("all")
@@ -183,16 +189,16 @@ class VerticalHistoryChart(tk.Canvas):
             return
             
         mid_x = self.width / 2
-        y_top = 10
-        y_bottom = self.height - 15  # leave room for -6H label at the bottom
+        self.y_top = 10
+        self.y_bottom = self.height - 15  # leave room for -6H label at the bottom
         
         # Center axis line
-        self.create_line(mid_x, y_top, mid_x, y_bottom, fill="#3A3D42", dash=(2, 2))
+        self.create_line(mid_x, self.y_top, mid_x, self.y_bottom, fill="#3A3D42", dash=(2, 2))
         
         # Time Ticks (Every 1h small, every 2h big)
-        y_range = y_bottom - y_top
+        y_range = self.y_bottom - self.y_top
         for h in range(1, 6):
-            tick_y = y_top + (h / 6.0) * y_range
+            tick_y = self.y_top + (h / 6.0) * y_range
             if h % 2 == 0:
                 # 2H, 4H (Big tick)
                 self.create_line(mid_x - 3, tick_y, mid_x + 3, tick_y, fill=TEXT_FG, width=1.5)
@@ -212,7 +218,7 @@ class VerticalHistoryChart(tk.Canvas):
             return
             
         now = datetime.now()
-        y_range = y_bottom - y_top
+        y_range = self.y_bottom - self.y_top
         
         # Pixel-first mapping: EXACTLY 1 pixel per row for perfect uniformity
         NUM_ROWS = int(y_range)
@@ -236,12 +242,14 @@ class VerticalHistoryChart(tk.Canvas):
                 ext_drop = 0
             buckets.append((gem_drop, ext_drop))
             
+        self.buckets = buckets
+        
         # ABSOLUTE FIXED SCALE: 1.0% per full block, 0.5% per half block. Max 10 blocks = 10.0%
         # Block rendering: 2px wide (full) or 1px wide (half), 1px gap -> Step is 3px
         BLOCK_STEP = 3
         
         for idx, (g, e) in enumerate(buckets):
-            cy = int(y_top + idx)
+            cy = int(self.y_top + idx)
             h_rect = cy + 1
             
             # Draw Gemini Blocks — Green -> Yellow -> Red
@@ -296,6 +304,35 @@ class VerticalHistoryChart(tk.Canvas):
         
         # -6H label pushed all the way to the bottom edge, slightly larger and brighter
         self.create_text(mid_x, self.height - 2, text="-6H", fill="#94A3B8", font=("Segoe UI", 7, "bold"), anchor="s")
+
+    def on_mouse_move(self, event):
+        self.delete("tooltip")
+        if not self.buckets:
+            return
+            
+        y = event.y
+        if y < self.y_top or y >= self.y_bottom:
+            return
+            
+        idx = int(y - self.y_top)
+        if 0 <= idx < len(self.buckets):
+            g, e = self.buckets[idx]
+            if g == 0 and e == 0:
+                return
+                
+            text = f"G: {g:.1f}% | E: {e:.1f}%"
+            text_x = self.width / 2
+            text_y = y - 12
+            if text_y < 15: text_y = y + 15
+            
+            t = self.create_text(text_x, text_y, text=text, fill="#E2E8F0", font=("Segoe UI", 7, "bold"), tags="tooltip")
+            bbox = self.bbox(t)
+            if bbox:
+                bg = self.create_rectangle(bbox[0]-3, bbox[1]-1, bbox[2]+3, bbox[3]+1, fill="#0F172A", outline="#334155", tags="tooltip")
+                self.tag_lower(bg, t)
+
+    def on_mouse_leave(self, event):
+        self.delete("tooltip")
 
 class SlidingToggle(tk.Canvas):
     def __init__(self, parent, command=None, *args, **kwargs):
