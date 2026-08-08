@@ -246,67 +246,41 @@ class VerticalHistoryChart(tk.Canvas):
             
         self.buckets = buckets
         
-        # ABSOLUTE FIXED SCALE: 1.0% per full block, 0.5% per half block. Max 10 blocks = 10.0%
-        # Block rendering: 2px wide (full) or 1px wide (half), 1px gap -> Step is 3px
-        BLOCK_STEP = 3
-        mid_x = int(self.width / 2)
-        
         for idx, (g, e) in enumerate(buckets):
-            # Change from 1px to 2px by multiplying idx by 2
             cy = int(self.y_top + idx * 2)
-            # Add overlap trick to avoid rendering gaps! Draw 3px height (cy to cy+3)
-            # Tkinter outline="" draws up to x2-1, y2-1. So cy+3 draws cy and cy+1 and cy+2.
-            # This perfectly covers the 2px space plus 1px overlap into the next bucket.
-            h_rect = cy + 3
             
-            # Draw Gemini Blocks — Green -> Yellow -> Red
+            # ── GEMINI Blocks ──
             g_capped = min(10.0, g)
-            g_full = int(g_capped // 1.0)
-            g_half = 1 if (g_capped % 1.0) >= 0.5 else 0
-            g_total = g_full + g_half
-            is_g_overflow = (g >= 10.0)
-            g_intensity = min(g / 10.0, 1.0)
+            g_width = int(g_capped * 3) # Max 30px
+            g_intensity = g_capped / 10.0
             
-            for b in range(g_total):
-                x_right = mid_x - 2 - (b * BLOCK_STEP)
-                is_half = (b == g_full) # Only the last block is half (if any)
-                x_left = x_right - (1 if is_half else 2)
-                
-                pos_factor = b / max(g_total - 1, 1)
-                factor = pos_factor * g_intensity
-                base_color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", factor)
-                
-                # UX Principle: Anomaly Highlighting. Normal data is quiet, spikes are loud.
-                if not is_g_overflow:
-                    color = deepen_rgb(base_color, 0.5) # Subdued for normal state
-                else:
-                    color = highlight_rgb(base_color, 1.2, 20) # Glow for overflow state
-                    
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
-                
-            # Draw External Blocks — Orange -> Purple -> Blue
-            e_capped = min(10.0, e)
-            e_full = int(e_capped // 1.0)
-            e_half = 1 if (e_capped % 1.0) >= 0.5 else 0
-            e_total = e_full + e_half
-            is_e_overflow = (e >= 10.0)
-            e_intensity = min(e / 10.0, 1.0)
-            
-            for b in range(e_total):
-                x_left = mid_x + 3 + (b * BLOCK_STEP)
-                is_half = (b == e_full)
-                x_right = x_left + (1 if is_half else 2)
-                
-                pos_factor = b / max(e_total - 1, 1)
-                factor = pos_factor * e_intensity
-                base_color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", factor)
-                
-                if not is_e_overflow:
-                    color = deepen_rgb(base_color, 0.5)
-                else:
+            if g_width > 0:
+                base_color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", g_intensity)
+                if g >= 10.0:
                     color = highlight_rgb(base_color, 1.2, 20)
+                else:
+                    color = deepen_rgb(base_color, 0.5)
                     
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
+                x_right = mid_x - 2
+                x_left = x_right - g_width
+                # Draw solid contiguous block, using outline=color to avoid anti-aliasing gaps
+                self.create_rectangle(x_left, cy, x_right, cy + 1, outline=color, fill=color)
+                
+            # ── EXTERNAL Blocks ──
+            e_capped = min(10.0, e)
+            e_width = int(e_capped * 3) # Max 30px
+            e_intensity = e_capped / 10.0
+            
+            if e_width > 0:
+                base_color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", e_intensity)
+                if e >= 10.0:
+                    color = highlight_rgb(base_color, 1.2, 20)
+                else:
+                    color = deepen_rgb(base_color, 0.5)
+                    
+                x_left = mid_x + 3
+                x_right = x_left + e_width
+                self.create_rectangle(x_left, cy, x_right, cy + 1, outline=color, fill=color)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
@@ -332,17 +306,19 @@ class VerticalHistoryChart(tk.Canvas):
         if y < self.y_top or y >= self.y_bottom:
             return
             
-        idx = int(y - self.y_top)
+        idx = int((y - self.y_top) / 2)
         if 0 <= idx < len(self.buckets):
             g, e = self.buckets[idx]
             if g == 0 and e == 0:
                 return
 
-            # Direction 3: Subtle row highlight band
-            self.create_rectangle(0, y - 1, self.width, y + 2, fill="#1E293B", outline="", tags="tooltip")
+            bucket_y = self.y_top + idx * 2
+
+            # Direction 3: Subtle row highlight band (2px height)
+            self.create_rectangle(0, bucket_y, self.width, bucket_y + 1, outline="#1E293B", fill="#1E293B", tags="tooltip")
             
             # Crosshair line (rendered on top of the highlight band)
-            self.create_line(0, y, self.width, y, fill="#475569", dash=(1, 2), tags="tooltip")
+            self.create_line(0, bucket_y, self.width, bucket_y, fill="#475569", dash=(1, 2), tags="tooltip")
             
             # Clamp text_y within vertical bounds
             text_y = max(self.y_top + 6, min(self.y_bottom - 6, y))
