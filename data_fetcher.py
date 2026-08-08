@@ -200,5 +200,4 @@ def fetch_usage_data():
     return result
 
 
-if __name__ == "__main__":
-    print(fetch_usage_data())
+

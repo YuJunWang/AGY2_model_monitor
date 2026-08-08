@@ -61,7 +61,4 @@ def _save_history(history):
     except OSError as e:
         print(f"[history_logger] Failed to save history: {e}")
 
-if __name__ == "__main__":
-    # Test
-    log_usage(74.5, 99.0)
-    print(get_history())
+
