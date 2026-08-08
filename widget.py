@@ -285,6 +285,60 @@ class VerticalHistoryChart(tk.Canvas):
         # -6H label pushed all the way to the bottom edge, slightly larger and brighter
         self.create_text(mid_x, self.height - 2, text="-6H", fill="#94A3B8", font=("Segoe UI", 7, "bold"), anchor="s")
 
+class SlidingToggle(tk.Canvas):
+    def __init__(self, parent, command=None, *args, **kwargs):
+        tk.Canvas.__init__(self, parent, width=32, height=16, bg=BG_COLOR, highlightthickness=0, bd=0, *args, **kwargs)
+        self.command = command
+        self.is_on = False
+        
+        # Draw pill background (using an oval left, oval right, and rectangle in middle)
+        self.bg_color_off = "#333842"
+        self.bg_color_on = "#7C3AED" # Cyberpunk purple when toggled (WK mode)
+        self.create_oval(0, 0, 16, 16, fill=self.bg_color_off, outline="", tags="bg")
+        self.create_oval(16, 0, 32, 16, fill=self.bg_color_off, outline="", tags="bg")
+        self.create_rectangle(8, 0, 24, 16, fill=self.bg_color_off, outline="", tags="bg")
+        
+        # Draw slider circle
+        self.slider = self.create_oval(2, 2, 14, 14, fill="#FFFFFF", outline="")
+        
+        self.bind("<Button-1>", self.toggle)
+        self.bind("<Enter>", lambda e: self.config(cursor="hand2"))
+        
+    def toggle(self, event=None):
+        self.is_on = not self.is_on
+        self.animate(1.0 if self.is_on else 0.0)
+        if self.command:
+            self.command(self.is_on)
+            
+    def set_state(self, state):
+        if self.is_on == state: return
+        self.is_on = state
+        self.animate(1.0 if self.is_on else 0.0)
+        
+    def animate(self, target_progress, current_progress=None):
+        if current_progress is None:
+            current_progress = 0.0 if target_progress == 1.0 else 1.0
+            
+        step = 0.15 if target_progress > current_progress else -0.15
+        next_progress = current_progress + step
+        
+        if (step > 0 and next_progress >= target_progress) or (step < 0 and next_progress <= target_progress):
+            next_progress = target_progress
+            
+        # Update slider position (x goes from 2 to 18)
+        x_offset = 2 + (16 * next_progress)
+        self.coords(self.slider, x_offset, 2, x_offset + 12, 14)
+        
+        # Update background color
+        if next_progress > 0.5:
+            self.itemconfig("bg", fill=self.bg_color_on)
+        else:
+            self.itemconfig("bg", fill=self.bg_color_off)
+            
+        if next_progress != target_progress:
+            self.after(16, lambda: self.animate(target_progress, next_progress))
+
+
 class UsageWidget:
     def __init__(self):
         self.root = tk.Tk()
@@ -374,12 +428,19 @@ class UsageWidget:
         self.last_update_lbl.pack(side=tk.LEFT, padx=6)
 
         # Toggle
-        self.toggle_container = tk.Frame(self.main_frame, bg="#1E2129", padx=2, pady=2, bd=0)
+        self.toggle_container = tk.Frame(self.main_frame, bg=BG_COLOR, bd=0)
         self.toggle_container.pack(pady=8)
-        seg_font = ("Segoe UI", 7, "bold")
-        self.btn_toggle = tk.Label(self.toggle_container, text=" VIEW: 5H ", font=seg_font, bg="#333842", fg=TEXT_FG, cursor="hand2", padx=16, pady=2)
-        self.btn_toggle.pack(side=tk.LEFT)
-        self.btn_toggle.bind("<Button-1>", lambda e: self.toggle_view())
+        
+        self.lbl_5h = tk.Label(self.toggle_container, text="5H", font=("Segoe UI", 7, "bold"), bg=BG_COLOR, fg=TEXT_FG, cursor="hand2")
+        self.lbl_5h.pack(side=tk.LEFT, padx=4)
+        self.lbl_5h.bind("<Button-1>", lambda e: self.set_view(False))
+        
+        self.toggle_switch = SlidingToggle(self.toggle_container, command=self.set_view)
+        self.toggle_switch.pack(side=tk.LEFT)
+        
+        self.lbl_wk = tk.Label(self.toggle_container, text="WK", font=("Segoe UI", 7, "bold"), bg=BG_COLOR, fg=TEXT_MUTED, cursor="hand2")
+        self.lbl_wk.pack(side=tk.LEFT, padx=4)
+        self.lbl_wk.bind("<Button-1>", lambda e: self.set_view(True))
         
         self.show_weekly = False
         
@@ -424,17 +485,21 @@ class UsageWidget:
         self.root.geometry(f"+{x}+{y}")
 
     def toggle_view(self):
-        self.set_view(not self.show_weekly)
+        self.toggle_switch.toggle()
 
     def set_view(self, show_weekly):
         if getattr(self, 'show_weekly', None) == show_weekly: return
         self.show_weekly = show_weekly
+        self.toggle_switch.set_state(show_weekly)
+        
         if self.show_weekly:
-            self.btn_toggle.config(text=" VIEW: WK ")
+            self.lbl_5h.config(fg=TEXT_MUTED)
+            self.lbl_wk.config(fg=TEXT_FG)
             self.view_5h_frame.pack_forget()
             self.view_wk_frame.pack(fill=tk.X)
         else:
-            self.btn_toggle.config(text=" VIEW: 5H ")
+            self.lbl_wk.config(fg=TEXT_MUTED)
+            self.lbl_5h.config(fg=TEXT_FG)
             self.view_wk_frame.pack_forget()
             self.view_5h_frame.pack(fill=tk.X)
 
@@ -522,8 +587,8 @@ class UsageWidget:
 
     def play_scanline_animation(self):
         # Subtle scanline sweeping across the chart area on each data refresh.
-        # Thin neon-white-green line, variable speed with random jitter.
-        scan_line = self.chart.create_line(0, 0, self.chart.width, 0, fill="#AEFFD6", width=1)
+        # Thin neon-white-green polyline, variable speed with random jitter (creases).
+        scan_line = self.chart.create_line(0, 0, 0, 0, fill="#5C856D", width=1)
         
         STEPS = 20
         def animate(step=0):
@@ -531,17 +596,23 @@ class UsageWidget:
                 self.chart.delete(scan_line)
                 return
             base_y = (step / STEPS) * self.chart.height
-            # Add random jitter to Y position
-            jitter = random.randint(-4, 4) if step > 0 and step < STEPS else 0
-            y = max(0, min(self.chart.height, base_y + jitter))
+            
+            # Generate polyline coordinates for creases
+            coords = []
+            x_segments = [0, self.chart.width * 0.3, self.chart.width * 0.6, self.chart.width]
+            
+            for x in x_segments:
+                jitter = random.randint(-4, 4) if step > 0 and step < STEPS else 0
+                y = max(0, min(self.chart.height, base_y + jitter))
+                coords.extend([x, y])
             
             # Add glitch effect: randomly drop opacity/visibility for a frame
             if random.random() < 0.15:
                 self.chart.itemconfig(scan_line, fill="#000000") # blend into background
             else:
-                self.chart.itemconfig(scan_line, fill="#AEFFD6")
+                self.chart.itemconfig(scan_line, fill="#5C856D")
                 
-            self.chart.coords(scan_line, 0, y, self.chart.width, y)
+            self.chart.coords(scan_line, *coords)
             delay = random.randint(20, 60) # variable speed
             self.root.after(delay, lambda: animate(step + 1))
             
