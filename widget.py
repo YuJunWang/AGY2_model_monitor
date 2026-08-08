@@ -188,7 +188,7 @@ class VerticalHistoryChart(tk.Canvas):
             self.create_text(self.width/2, self.height/2, text="Waiting...", fill=TEXT_MUTED, font=("Segoe UI", 7))
             return
             
-        mid_x = self.width / 2
+        mid_x = int(self.width / 2)
         self.y_top = 10
         self.y_bottom = self.height - 15  # leave room for -6H label at the bottom
         
@@ -198,13 +198,13 @@ class VerticalHistoryChart(tk.Canvas):
         # Time Ticks (Every 1h small, every 2h big)
         y_range = self.y_bottom - self.y_top
         for h in range(1, 6):
-            tick_y = self.y_top + (h / 6.0) * y_range
+            tick_y = int(self.y_top + (h / 6.0) * y_range)
             if h % 2 == 0:
                 # 2H, 4H (Big tick)
                 self.create_line(mid_x - 3, tick_y, mid_x + 3, tick_y, fill=TEXT_FG, width=1.5)
             else:
                 # 1H, 3H, 5H (Small tick)
-                self.create_line(mid_x - 1.5, tick_y, mid_x + 1.5, tick_y, fill=TEXT_MUTED, width=1.0)
+                self.create_line(mid_x - 1, tick_y, mid_x + 1, tick_y, fill=TEXT_MUTED, width=1.0)
         
         parsed = []
         for r in history:
@@ -247,6 +247,7 @@ class VerticalHistoryChart(tk.Canvas):
         # ABSOLUTE FIXED SCALE: 1.0% per full block, 0.5% per half block. Max 10 blocks = 10.0%
         # Block rendering: 2px wide (full) or 1px wide (half), 1px gap -> Step is 3px
         BLOCK_STEP = 3
+        mid_x = int(self.width / 2)
         
         for idx, (g, e) in enumerate(buckets):
             cy = int(self.y_top + idx)
@@ -261,7 +262,7 @@ class VerticalHistoryChart(tk.Canvas):
             g_intensity = min(g / 10.0, 1.0)
             
             for b in range(g_total):
-                x_right = mid_x - 3 - (b * BLOCK_STEP)
+                x_right = mid_x - 2 - (b * BLOCK_STEP)
                 is_half = (b == g_full) # Only the last block is half (if any)
                 x_left = x_right - (1 if is_half else 2)
                 
