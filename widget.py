@@ -322,6 +322,7 @@ class SlidingToggle(tk.Canvas):
         step = 0.15 if target_progress > current_progress else -0.15
         next_progress = current_progress + step
         
+        # Clamp to target to avoid floating-point overshoot
         if (step > 0 and next_progress >= target_progress) or (step < 0 and next_progress <= target_progress):
             next_progress = target_progress
             
@@ -329,13 +330,14 @@ class SlidingToggle(tk.Canvas):
         x_offset = 2 + (16 * next_progress)
         self.coords(self.slider, x_offset, 2, x_offset + 12, 14)
         
-        # Update background color
+        # Update background color at midpoint
         if next_progress > 0.5:
             self.itemconfig("bg", fill=self.bg_color_on)
         else:
             self.itemconfig("bg", fill=self.bg_color_off)
             
-        if next_progress != target_progress:
+        # Use tolerance check instead of exact float equality
+        if abs(next_progress - target_progress) > 0.001:
             self.after(16, lambda: self.animate(target_progress, next_progress))
 
 
@@ -483,9 +485,6 @@ class UsageWidget:
         x = self.root.winfo_x() + deltax
         y = self.root.winfo_y() + deltay
         self.root.geometry(f"+{x}+{y}")
-
-    def toggle_view(self):
-        self.toggle_switch.toggle()
 
     def set_view(self, show_weekly):
         if getattr(self, 'show_weekly', None) == show_weekly: return
