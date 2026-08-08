@@ -3,13 +3,9 @@
 Most telemetry tools introduce unnecessary cognitive load with complex dashboards and extensive configuration files. AGY Fuel Gauge provides a minimalist alternative: a zero-config, frameless widget that monitors your remaining AI quotas without interrupting your workflow. Instead of requiring API credentials, it bypasses authentication by directly intercepting the gRPC-Web traffic from your local `language_server.exe` daemon. It runs silently in the background and requires zero manual setup.
 
 <p align="center">
-  <img src="./assets/widget_v5_5h.png" alt="Vertical Fuel Gauge 5H View" />
+  <img src="./assets/widget_5h.png" alt="Vertical Fuel Gauge 5H View" />
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./assets/widget_v5_wk.png" alt="Vertical Fuel Gauge Weekly View" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./assets/widget_v6_5h.png" alt="Vertical Fuel Gauge 5H Hover View" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./assets/widget_v6_wk.png" alt="Vertical Fuel Gauge Weekly Hover View" />
+  <img src="./assets/widget_wk.png" alt="Vertical Fuel Gauge Weekly View" />
 </p>
 
 ## Tech Specs
