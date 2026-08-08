@@ -590,7 +590,7 @@ class UsageWidget:
         # Thin neon-white-green polyline, variable speed with random jitter (creases).
         scan_line = self.chart.create_line(0, 0, 0, 0, fill="#5C856D", width=1)
         
-        STEPS = 20
+        STEPS = 25  # Increased steps for a smoother, slower sweep
         def animate(step=0):
             if step > STEPS:
                 self.chart.delete(scan_line)
@@ -602,7 +602,8 @@ class UsageWidget:
             x_segments = [0, self.chart.width * 0.3, self.chart.width * 0.6, self.chart.width]
             
             for x in x_segments:
-                jitter = random.randint(-4, 4) if step > 0 and step < STEPS else 0
+                # Reduced jitter magnitude to make the creases more subtle
+                jitter = random.randint(-1, 1) if step > 0 and step < STEPS else 0
                 y = max(0, min(self.chart.height, base_y + jitter))
                 coords.extend([x, y])
             
@@ -613,7 +614,8 @@ class UsageWidget:
                 self.chart.itemconfig(scan_line, fill="#5C856D")
                 
             self.chart.coords(scan_line, *coords)
-            delay = random.randint(20, 60) # variable speed
+            # Increased delay base to slow down the overall animation
+            delay = random.randint(40, 90) # variable speed
             self.root.after(delay, lambda: animate(step + 1))
             
         animate(0)
