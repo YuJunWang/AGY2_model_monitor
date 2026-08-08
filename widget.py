@@ -236,35 +236,47 @@ class VerticalHistoryChart(tk.Canvas):
                 ext_drop = 0
             buckets.append((gem_drop, ext_drop))
             
-        # ABSOLUTE FIXED SCALE: 0.5% per block. Max 10 blocks = 5.0%
-        # Block rendering: 2px wide, 1px gap -> Step is 3px
+        # ABSOLUTE FIXED SCALE: 1.0% per full block, 0.5% per half block. Max 10 blocks = 10.0%
+        # Block rendering: 2px wide (full) or 1px wide (half), 1px gap -> Step is 3px
         BLOCK_STEP = 3
         
         for idx, (g, e) in enumerate(buckets):
             cy = int(y_top + idx)
             h_rect = cy + 1
             
-            # Draw Gemini Blocks — 3-point gradient: Green -> Yellow -> Red
-            g_blocks = min(10, int(g / 0.5))
-            is_g_overflow = (g >= 5.0)
-            g_intensity = min(g / 5.0, 1.0)
-            for b in range(g_blocks):
+            # Draw Gemini Blocks — Green -> Yellow -> Red
+            g_capped = min(10.0, g)
+            g_full = int(g_capped // 1.0)
+            g_half = 1 if (g_capped % 1.0) >= 0.5 else 0
+            g_total = g_full + g_half
+            is_g_overflow = (g >= 10.0)
+            g_intensity = min(g / 10.0, 1.0)
+            
+            for b in range(g_total):
                 x_right = mid_x - 3 - (b * BLOCK_STEP)
-                x_left = x_right - 2
-                pos_factor = b / max(g_blocks - 1, 1)
+                is_half = (b == g_full) # Only the last block is half (if any)
+                x_left = x_right - (1 if is_half else 2)
+                
+                pos_factor = b / max(g_total - 1, 1)
                 factor = pos_factor * g_intensity
                 color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", factor)
                 if is_g_overflow: color = deepen_rgb(color, 0.7)
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
-            # Draw External Blocks — 3-point gradient: Orange -> Purple -> Blue
-            e_blocks = min(10, int(e / 0.5))
-            is_e_overflow = (e >= 5.0)
-            e_intensity = min(e / 5.0, 1.0)
-            for b in range(e_blocks):
+            # Draw External Blocks — Orange -> Purple -> Blue
+            e_capped = min(10.0, e)
+            e_full = int(e_capped // 1.0)
+            e_half = 1 if (e_capped % 1.0) >= 0.5 else 0
+            e_total = e_full + e_half
+            is_e_overflow = (e >= 10.0)
+            e_intensity = min(e / 10.0, 1.0)
+            
+            for b in range(e_total):
                 x_left = mid_x + 3 + (b * BLOCK_STEP)
-                x_right = x_left + 2
-                pos_factor = b / max(e_blocks - 1, 1)
+                is_half = (b == e_full)
+                x_right = x_left + (1 if is_half else 2)
+                
+                pos_factor = b / max(e_total - 1, 1)
                 factor = pos_factor * e_intensity
                 color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", factor)
                 if is_e_overflow: color = deepen_rgb(color, 0.7)
