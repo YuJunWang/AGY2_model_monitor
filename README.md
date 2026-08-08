@@ -1,6 +1,6 @@
 # AGY Fuel Gauge 🚀
 
-Monitor AI quotas silently. Zero config. Direct local traffic interception.
+Honestly, looking at most telemetry dashboards just gives me anxiety. They shove massive graphs and endless configuration files in your face when all you really want is a tiny indicator that shuts up and stays out of your way. I built this because I just needed to know my remaining AI quota without breaking my flow state. It doesn't even ask for your credentials. We took the most brute-force route possible: it literally eavesdrops on the local daemon's traffic happening right on your machine. You don't configure it, you just run it and it works.
 
 <p align="center">
   <img src="./assets/widget_v5_5h.png" alt="Vertical Fuel Gauge 5H View" />
@@ -53,7 +53,7 @@ Restart Antigravity IDE. Gauge icon loads in system tray. Right-click to wake, h
 
 # AGY Fuel Gauge（中文說明）🚀
 
-直接攔截本地流量，免帳號密碼監看 AI 剩餘額度。
+其實市面上一堆監控工具看了就覺得煩，動不動就要搞一堆複雜儀表板跟設定檔，光是看著就讓我焦慮。我只想要一個東西：不要擋路、不要吵我，安安靜靜在角落告訴我 AI 額度到底還剩多少就好。所以這個小工具根本不跟你要帳號密碼，我們直接用最暴力的解法——直接攔截你電腦裡那支負責通訊的背景精靈流量。你連設定都不用設定，裝上去它自己就會搞定。
 
 ## 核心技術
 1. **API 自動掛載**：動態抓取 `language_server.exe` 的 port。從日誌挖出 token，直連內部 gRPC-Web。
