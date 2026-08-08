@@ -341,10 +341,10 @@ class VerticalHistoryChart(tk.Canvas):
             # Clamp text_y within vertical bounds
             text_y = max(self.y_top + 6, min(self.y_bottom - 6, y))
             
-            # Direction 1: Split labels — G fixed left (green), E fixed right (orange)
+            # Direction 1: Split labels — fixed left (green), fixed right (orange)
             for text, color, x, anchor_val in [
-                (f"G {g:.1f}%", COLOR_GEM_SAFE, 2, "w"),
-                (f"E {e:.1f}%", COLOR_EXT_SAFE, self.width - 2, "e"),
+                (f"{g:.1f}%", COLOR_GEM_SAFE, 2, "w"),
+                (f"{e:.1f}%", COLOR_EXT_SAFE, self.width - 2, "e"),
             ]:
                 lbl = self.create_text(x, text_y, text=text, fill=color, font=("Segoe UI", 7, "bold"), anchor=anchor_val, tags="tooltip")
                 bbox = self.bbox(lbl)
