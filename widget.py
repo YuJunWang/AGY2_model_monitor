@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import pystray
 from PIL import Image, ImageDraw
 import math
+import random
 
 # ── Single Instance Lock ───────────────────────────────────────────────────
 mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "Global\\AGY_Fuel_Gauge_Mutex")
@@ -376,12 +377,9 @@ class UsageWidget:
         self.toggle_container = tk.Frame(self.main_frame, bg="#1E2129", padx=2, pady=2, bd=0)
         self.toggle_container.pack(pady=8)
         seg_font = ("Segoe UI", 7, "bold")
-        self.btn_5h = tk.Label(self.toggle_container, text=" 5H ", font=seg_font, bg="#333842", fg=TEXT_FG, cursor="hand2", padx=6, pady=2)
-        self.btn_5h.pack(side=tk.LEFT)
-        self.btn_5h.bind("<Button-1>", lambda e: self.set_view(False))
-        self.btn_weekly = tk.Label(self.toggle_container, text=" WK ", font=seg_font, bg="#1E2129", fg=TEXT_MUTED, cursor="hand2", padx=6, pady=2)
-        self.btn_weekly.pack(side=tk.LEFT)
-        self.btn_weekly.bind("<Button-1>", lambda e: self.set_view(True))
+        self.btn_toggle = tk.Label(self.toggle_container, text=" VIEW: 5H ", font=seg_font, bg="#333842", fg=TEXT_FG, cursor="hand2", padx=16, pady=2)
+        self.btn_toggle.pack(side=tk.LEFT)
+        self.btn_toggle.bind("<Button-1>", lambda e: self.toggle_view())
         
         self.show_weekly = False
         
@@ -425,17 +423,18 @@ class UsageWidget:
         y = self.root.winfo_y() + deltay
         self.root.geometry(f"+{x}+{y}")
 
+    def toggle_view(self):
+        self.set_view(not self.show_weekly)
+
     def set_view(self, show_weekly):
-        if self.show_weekly == show_weekly: return
+        if getattr(self, 'show_weekly', None) == show_weekly: return
         self.show_weekly = show_weekly
         if self.show_weekly:
-            self.btn_5h.config(bg="#1E2129", fg=TEXT_MUTED)
-            self.btn_weekly.config(bg="#333842", fg=TEXT_FG)
+            self.btn_toggle.config(text=" VIEW: WK ")
             self.view_5h_frame.pack_forget()
             self.view_wk_frame.pack(fill=tk.X)
         else:
-            self.btn_weekly.config(bg="#1E2129", fg=TEXT_MUTED)
-            self.btn_5h.config(bg="#333842", fg=TEXT_FG)
+            self.btn_toggle.config(text=" VIEW: 5H ")
             self.view_wk_frame.pack_forget()
             self.view_5h_frame.pack(fill=tk.X)
 
@@ -523,7 +522,7 @@ class UsageWidget:
 
     def play_scanline_animation(self):
         # Subtle scanline sweeping across the chart area on each data refresh.
-        # Thin neon-white-green line, 800ms sweep duration.
+        # Thin neon-white-green line, variable speed with random jitter.
         scan_line = self.chart.create_line(0, 0, self.chart.width, 0, fill="#AEFFD6", width=1)
         
         STEPS = 20
@@ -531,9 +530,20 @@ class UsageWidget:
             if step > STEPS:
                 self.chart.delete(scan_line)
                 return
-            y = (step / STEPS) * self.chart.height
+            base_y = (step / STEPS) * self.chart.height
+            # Add random jitter to Y position
+            jitter = random.randint(-4, 4) if step > 0 and step < STEPS else 0
+            y = max(0, min(self.chart.height, base_y + jitter))
+            
+            # Add glitch effect: randomly drop opacity/visibility for a frame
+            if random.random() < 0.15:
+                self.chart.itemconfig(scan_line, fill="#000000") # blend into background
+            else:
+                self.chart.itemconfig(scan_line, fill="#AEFFD6")
+                
             self.chart.coords(scan_line, 0, y, self.chart.width, y)
-            self.root.after(40, lambda: animate(step + 1))
+            delay = random.randint(20, 60) # variable speed
+            self.root.after(delay, lambda: animate(step + 1))
             
         animate(0)
 
