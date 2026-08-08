@@ -190,9 +190,9 @@ class VerticalHistoryChart(tk.Canvas):
             
         mid_x = int(self.width / 2)
         self.y_top = 10
-        # Force y_range to be exactly 120 pixels (6 hours * 20 buckets/hr = 120 pixels)
-        # This ensures the time ticks perfectly align with the 1 pixel-per-bucket data rendering.
-        y_range = 120
+        # Force y_range to be exactly 240 pixels (6 hours * 20 buckets/hr * 2px = 240 pixels)
+        # This ensures the time ticks perfectly align with the 2 pixel-per-bucket data rendering.
+        y_range = 240
         self.y_bottom = self.y_top + y_range
         
         # Center axis line
@@ -222,8 +222,8 @@ class VerticalHistoryChart(tk.Canvas):
         now = datetime.now()
         y_range = self.y_bottom - self.y_top
         
-        # Pixel-first mapping: EXACTLY 1 pixel per row for perfect uniformity
-        NUM_ROWS = int(y_range)
+        # Pixel-first mapping: 2px per row for uniform density
+        NUM_ROWS = int(y_range // 2)
         bucket_duration_min = 360.0 / NUM_ROWS
         
         buckets = [] 
@@ -252,8 +252,12 @@ class VerticalHistoryChart(tk.Canvas):
         mid_x = int(self.width / 2)
         
         for idx, (g, e) in enumerate(buckets):
-            cy = int(self.y_top + idx)
-            h_rect = cy + 1
+            # Change from 1px to 2px by multiplying idx by 2
+            cy = int(self.y_top + idx * 2)
+            # Add overlap trick to avoid rendering gaps! Draw 3px height (cy to cy+3)
+            # Tkinter outline="" draws up to x2-1, y2-1. So cy+3 draws cy and cy+1 and cy+2.
+            # This perfectly covers the 2px space plus 1px overlap into the next bucket.
+            h_rect = cy + 3
             
             # Draw Gemini Blocks — Green -> Yellow -> Red
             g_capped = min(10.0, g)
@@ -420,7 +424,7 @@ class UsageWidget:
         
         # Total width 134 (24 tab + 110 main)
         self.width = 134
-        self.base_height = 431
+        self.base_height = 500
         self.root.geometry(f"{self.width}x{self.base_height}")
         
         # We use SetWindowRgn for the precise shape, so no transparent color is needed
@@ -522,26 +526,26 @@ class UsageWidget:
         self.bars_frame = tk.Frame(self.main_frame, bg=BG_COLOR)
         self.bars_frame.pack(fill=tk.X, pady=4)
         
-        self.view_5h_frame = tk.Frame(self.bars_frame, bg=BG_COLOR, height=210)
+        self.view_5h_frame = tk.Frame(self.bars_frame, bg=BG_COLOR, height=150)
         self.view_5h_frame.pack(fill=tk.X)
         self.view_5h_frame.pack_propagate(False)
-        self.gemini_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=210, title="GEM", is_gemini=True, text_side="left")
+        self.gemini_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=150, title="GEM", is_gemini=True, text_side="left")
         self.gemini_5h_gauge.place(x=9, y=0)
-        self.ext_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=210, title="EXT", is_gemini=False, text_side="right")
+        self.ext_5h_gauge = VerticalFuelGauge(self.view_5h_frame, width=44, height=150, title="EXT", is_gemini=False, text_side="right")
         self.ext_5h_gauge.place(x=57, y=0)
         
-        self.view_wk_frame = tk.Frame(self.bars_frame, bg=BG_COLOR, height=210)
+        self.view_wk_frame = tk.Frame(self.bars_frame, bg=BG_COLOR, height=150)
         self.view_wk_frame.pack_propagate(False)
-        self.gemini_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=210, title="GEM", is_gemini=True, text_side="left")
+        self.gemini_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=150, title="GEM", is_gemini=True, text_side="left")
         self.gemini_wk_gauge.place(x=9, y=0)
-        self.ext_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=210, title="EXT", is_gemini=False, text_side="right")
+        self.ext_wk_gauge = VerticalFuelGauge(self.view_wk_frame, width=44, height=150, title="EXT", is_gemini=False, text_side="right")
         self.ext_wk_gauge.place(x=57, y=0)
 
         # Vertical History Chart
         self.chart_frame = tk.Frame(self.main_frame, bg=SURFACE_COLOR, bd=0, highlightthickness=0)
         self.chart_frame.pack(fill=tk.BOTH, expand=True, pady=(4, 8), padx=6)
         
-        self.chart = VerticalHistoryChart(self.chart_frame, width=96, height=145)
+        self.chart = VerticalHistoryChart(self.chart_frame, width=96, height=265)
         self.chart.pack(fill=tk.BOTH, expand=True)
         
         history = history_logger.get_history(minutes=360)
