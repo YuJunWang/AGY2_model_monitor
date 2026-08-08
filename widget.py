@@ -190,13 +190,15 @@ class VerticalHistoryChart(tk.Canvas):
             
         mid_x = int(self.width / 2)
         self.y_top = 10
-        self.y_bottom = self.height - 15  # leave room for -6H label at the bottom
+        # Force y_range to be exactly 120 pixels (6 hours * 20 buckets/hr = 120 pixels)
+        # This ensures the time ticks perfectly align with the 1 pixel-per-bucket data rendering.
+        y_range = 120
+        self.y_bottom = self.y_top + y_range
         
         # Center axis line
         self.create_line(mid_x, self.y_top, mid_x, self.y_bottom, fill="#3A3D42", dash=(2, 2))
         
         # Time Ticks (Every 1h small, every 2h big)
-        y_range = self.y_bottom - self.y_top
         for h in range(1, 6):
             tick_y = int(self.y_top + (h / 6.0) * y_range)
             if h % 2 == 0:
@@ -314,8 +316,8 @@ class VerticalHistoryChart(tk.Canvas):
         self.create_text(8, self.height / 2, text=f"{round(gem_hourly, 1)} %/h", fill=gem_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
         self.create_text(self.width-8, self.height / 2, text=f"{round(ext_hourly, 1)} %/h", fill=ext_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
         
-        # -6H label pushed all the way to the bottom edge, slightly larger and brighter
-        self.create_text(mid_x, self.height - 2, text="-6H", fill="#94A3B8", font=("Segoe UI", 7, "bold"), anchor="s")
+        # -6H label pushed snugly below the bottom axis
+        self.create_text(mid_x, self.y_bottom + 13, text="-6H", fill="#94A3B8", font=("Segoe UI", 7, "bold"), anchor="s")
 
     def on_mouse_move(self, event):
         self.delete("tooltip")
@@ -418,7 +420,7 @@ class UsageWidget:
         
         # Total width 134 (24 tab + 110 main)
         self.width = 134
-        self.base_height = 500
+        self.base_height = 431
         self.root.geometry(f"{self.width}x{self.base_height}")
         
         # We use SetWindowRgn for the precise shape, so no transparent color is needed
@@ -432,8 +434,8 @@ class UsageWidget:
         self.root.update_idletasks()
         try:
             hwnd = ctypes.windll.user32.GetParent(self.root.winfo_id())
-            # Main body: x=24 to 134, y=0 to 500, with 12px rounding (6px radius)
-            rgn_main = ctypes.windll.gdi32.CreateRoundRectRgn(24, 0, 134, 500, 12, 12)
+            # Main body: x=24 to 134, y=0 to base_height, with 12px rounding (6px radius)
+            rgn_main = ctypes.windll.gdi32.CreateRoundRectRgn(24, 0, 134, self.base_height, 12, 12)
             # Tab: x=0 to 30, y=0 to 140
             rgn_tab = ctypes.windll.gdi32.CreateRoundRectRgn(0, 0, 30, 140, 12, 12)
             
@@ -539,7 +541,7 @@ class UsageWidget:
         self.chart_frame = tk.Frame(self.main_frame, bg=SURFACE_COLOR, bd=0, highlightthickness=0)
         self.chart_frame.pack(fill=tk.BOTH, expand=True, pady=(4, 8), padx=6)
         
-        self.chart = VerticalHistoryChart(self.chart_frame, width=96, height=190)
+        self.chart = VerticalHistoryChart(self.chart_frame, width=96, height=145)
         self.chart.pack(fill=tk.BOTH, expand=True)
         
         history = history_logger.get_history(minutes=360)
