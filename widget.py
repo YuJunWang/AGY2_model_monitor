@@ -201,15 +201,15 @@ class VerticalHistoryChart(tk.Canvas):
         self.y_top = 10
         # Force y_range to be exactly 240 pixels (6 hours * 20 buckets/hr * 2px = 240 pixels)
         # This ensures the time ticks perfectly align with the 2 pixel-per-bucket data rendering.
-        y_range = 240
+        y_range = 300
         self.y_bottom = self.y_top + y_range
         
         # Center axis line
-        self.create_line(mid_x, self.y_top, mid_x, self.y_bottom, fill="#3A3D42", dash=(2, 2))
+        self.create_line(mid_x, self.y_top, mid_x, self.y_bottom, fill="#1E293B", width=2)
         
         # Time Ticks (Every 1h small, every 2h big)
-        for h in range(1, 6):
-            tick_y = int(self.y_top + (h / 6.0) * y_range)
+        for h in range(1, 5):
+            tick_y = int(self.y_top + (h / 5.0) * y_range)
             if h % 2 == 0:
                 # 2H, 4H (Big tick)
                 self.create_line(mid_x - 3, tick_y, mid_x + 3, tick_y, fill=TEXT_FG, width=1.5)
@@ -232,8 +232,8 @@ class VerticalHistoryChart(tk.Canvas):
         y_range = self.y_bottom - self.y_top
         
         # Pixel-first mapping: 2px per row for uniform density
-        NUM_ROWS = int(y_range // 2)
-        bucket_duration_min = 360.0 / NUM_ROWS
+        NUM_ROWS = int(y_range // 3)
+        bucket_duration_min = 300.0 / NUM_ROWS
         
         buckets = [] 
         for i in range(0, NUM_ROWS):
@@ -261,7 +261,7 @@ class VerticalHistoryChart(tk.Canvas):
         mid_x = int(self.width / 2)
         
         for idx, (g, e) in enumerate(buckets):
-            cy = int(self.y_top + idx * 2)
+            cy = int(self.y_top + idx * 3)
             
             # ── GEMINI Blocks ──
             g_capped = min(10.0, g)
@@ -287,7 +287,7 @@ class VerticalHistoryChart(tk.Canvas):
                     
                 # Use create_line with width=2 to guarantee native 2px height rendering without DPI gaps.
                 # create_line is inclusive on coordinates, so we draw to x_right - 1 to maintain the 1px gap.
-                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=2)
+                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=3)
                 
             # ── EXTERNAL Blocks ──
             e_capped = min(10.0, e)
@@ -311,12 +311,12 @@ class VerticalHistoryChart(tk.Canvas):
                 else:
                     color = highlight_rgb(base_color, 1.2, 20)
                     
-                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=2)
+                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=3)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
-        gem_hourly = gem_total / 6.0
-        ext_hourly = ext_total / 6.0
+        gem_hourly = gem_total / 5.0
+        ext_hourly = ext_total / 5.0
 
         gem_color = COLOR_GEM_DANGER if gem_hourly > 20 else COLOR_GEM_SAFE
         ext_color = COLOR_EXT_DANGER if ext_hourly > 20 else COLOR_EXT_SAFE
@@ -326,7 +326,7 @@ class VerticalHistoryChart(tk.Canvas):
         self.create_text(self.width-8, self.height / 2, text=f"{round(ext_hourly, 1)} %/h", fill=ext_color, font=(DIGITAL_FONT, 8, "bold"), angle=270, anchor="center")
         
         # -6H label pushed snugly below the bottom axis
-        self.create_text(mid_x, self.y_bottom + 13, text="-6H", fill="#94A3B8", font=("Segoe UI", 7, "bold"), anchor="s")
+        self.create_text(mid_x, self.y_bottom + 13, text="-5H", fill="#94A3B8", font=("Segoe UI", 7, "bold"), anchor="s")
 
     def on_mouse_move(self, event):
         self.delete("tooltip")
@@ -337,16 +337,16 @@ class VerticalHistoryChart(tk.Canvas):
         if y < self.y_top or y >= self.y_bottom:
             return
             
-        idx = int((y - self.y_top) / 2)
+        idx = int((y - self.y_top) / 3)
         if 0 <= idx < len(self.buckets):
             g, e = self.buckets[idx]
             if g == 0 and e == 0:
                 return
 
-            bucket_y = self.y_top + idx * 2
+            bucket_y = self.y_top + idx * 3
 
             # Direction 3: Subtle row highlight band (2px height)
-            self.create_rectangle(0, bucket_y, self.width, bucket_y + 1, outline="#1E293B", fill="#1E293B", tags="tooltip")
+            self.create_rectangle(0, bucket_y - 1, self.width, bucket_y + 2, outline="#1E293B", fill="#1E293B", tags="tooltip")
             
             # Crosshair line (rendered on top of the highlight band)
             self.create_line(0, bucket_y, self.width, bucket_y, fill="#475569", dash=(1, 2), tags="tooltip")
@@ -431,7 +431,7 @@ class UsageWidget:
         
         # Total width 134 (24 tab + 110 main)
         self.width = 134
-        self.base_height = 500
+        self.base_height = 560
         self.root.geometry(f"{self.width}x{self.base_height}")
         
         # We use SetWindowRgn for the precise shape, so no transparent color is needed
@@ -552,7 +552,7 @@ class UsageWidget:
         self.chart_frame = tk.Frame(self.main_frame, bg=SURFACE_COLOR, bd=0, highlightthickness=0)
         self.chart_frame.pack(fill=tk.BOTH, expand=True, pady=(4, 8), padx=6)
         
-        self.chart = VerticalHistoryChart(self.chart_frame, width=96, height=265)
+        self.chart = VerticalHistoryChart(self.chart_frame, width=96, height=325)
         self.chart.pack(fill=tk.BOTH, expand=True)
         
         history = history_logger.get_history(minutes=360)
@@ -714,3 +714,5 @@ class UsageWidget:
 if __name__ == "__main__":
     app = UsageWidget()
     app.run()
+
+
