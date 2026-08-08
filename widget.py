@@ -267,8 +267,14 @@ class VerticalHistoryChart(tk.Canvas):
                 
                 pos_factor = b / max(g_total - 1, 1)
                 factor = pos_factor * g_intensity
-                color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", factor)
-                if is_g_overflow: color = deepen_rgb(color, 0.7)
+                base_color = interpolate_color_3(COLOR_GEM_SAFE, "#EAB308", "#EF4444", factor)
+                
+                # UX Principle: Anomaly Highlighting. Normal data is quiet, spikes are loud.
+                if not is_g_overflow:
+                    color = deepen_rgb(base_color, 0.5) # Subdued for normal state
+                else:
+                    color = highlight_rgb(base_color, 1.2, 20) # Glow for overflow state
+                    
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
                 
             # Draw External Blocks — Orange -> Purple -> Blue
@@ -286,8 +292,13 @@ class VerticalHistoryChart(tk.Canvas):
                 
                 pos_factor = b / max(e_total - 1, 1)
                 factor = pos_factor * e_intensity
-                color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", factor)
-                if is_e_overflow: color = deepen_rgb(color, 0.7)
+                base_color = interpolate_color_3(COLOR_EXT_SAFE, "#7C3AED", "#2563EB", factor)
+                
+                if not is_e_overflow:
+                    color = deepen_rgb(base_color, 0.5)
+                else:
+                    color = highlight_rgb(base_color, 1.2, 20)
+                    
                 self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
             
         gem_total = sum(g for g, e in buckets)
