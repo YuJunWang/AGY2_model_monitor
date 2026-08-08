@@ -15,6 +15,15 @@ mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "Global\\AGY_Fuel_Gauge
 if ctypes.windll.kernel32.GetLastError() == 183: # ERROR_ALREADY_EXISTS
     sys.exit(0)
 
+# ── DPI Awareness ──────────────────────────────────────────────────────────
+# Enable DPI awareness to bypass Windows Desktop Window Manager (DWM) scaling.
+# This forces 1 virtual pixel to map exactly to 1 physical pixel, 
+# mathematically eliminating any subpixel rounding gaps in rendering.
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    pass
+
 import data_fetcher
 import history_logger
 
