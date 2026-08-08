@@ -253,10 +253,6 @@ class VerticalHistoryChart(tk.Canvas):
         
         for idx, (g, e) in enumerate(buckets):
             cy = int(self.y_top + idx * 2)
-            # Use cy + 2 to perfectly match the 2px bucket stride.
-            # This ensures contiguous drawing without overlapping into adjacent data points,
-            # preventing both gaps and distorted visual overlaps.
-            h_rect = cy + 2
             
             # ── GEMINI Blocks ──
             g_capped = min(10.0, g)
@@ -280,7 +276,9 @@ class VerticalHistoryChart(tk.Canvas):
                 else:
                     color = highlight_rgb(base_color, 1.2, 20)
                     
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
+                # Use create_line with width=2 to guarantee native 2px height rendering without DPI gaps.
+                # create_line is inclusive on coordinates, so we draw to x_right - 1 to maintain the 1px gap.
+                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=2)
                 
             # ── EXTERNAL Blocks ──
             e_capped = min(10.0, e)
@@ -304,7 +302,7 @@ class VerticalHistoryChart(tk.Canvas):
                 else:
                     color = highlight_rgb(base_color, 1.2, 20)
                     
-                self.create_rectangle(x_left, cy, x_right, h_rect, outline="", fill=color)
+                self.create_line(x_left, cy, x_right - 1, cy, fill=color, width=2)
             
         gem_total = sum(g for g, e in buckets)
         ext_total = sum(e for g, e in buckets)
